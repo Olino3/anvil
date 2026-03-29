@@ -86,6 +86,46 @@ After the dev-agent completes successfully, present the user with these options 
 
 Wait for the user to choose before proceeding to Step 8.
 
+### 8. Execute Integration and Cleanup
+
+Execute the user's chosen option:
+
+**Option 1 — Squash merge:**
+```
+git checkout {sprint-branch}
+git merge --squash {worktree-branch}
+git commit -m "feat({component}): implement {ticket-id} — {ticket title}"
+```
+Then remove the worktree and delete the dev branch:
+- If worktree was created with `EnterWorktree`: use `ExitWorktree`
+- If worktree was created with superpowers skill: `git worktree remove {path}` then `git branch -D {worktree-branch}`
+
+**Option 2 — Merge:**
+```
+git checkout {sprint-branch}
+git merge {worktree-branch}
+```
+Then remove worktree and delete dev branch (same cleanup as Option 1).
+
+**Option 3 — Create PR:**
+```
+git push -u origin {worktree-branch}
+gh pr create --base {sprint-branch} --head {worktree-branch} \
+  --title "{ticket-id}: {ticket title}" \
+  --body "## Summary\n- Implements {ticket-id}\n- {commit count} commits (RED/GREEN/REFACTOR)\n\n## Acceptance Criteria\n{checked criteria from ticket}\n\n## Verification\n{verification results from dev-agent}"
+```
+Keep the worktree alive — the user may push more commits.
+
+**Option 4 — Keep worktree:**
+No git operations. Report to the user:
+> "Worktree kept at `{path}` on branch `{worktree-branch}` with {N} commits. Run `/anvil:develop` again or integrate manually when ready."
+
+**Option 5 — Discard:**
+Confirm with the user first:
+> "This will delete the worktree and all {N} commits on `{worktree-branch}`. Are you sure?"
+
+On confirmation, remove the worktree and delete the dev branch (same cleanup as Option 1). If the user declines, go back to Step 7 to choose again.
+
 ### 9. Post-Completion
 
 After the dev-agent completes, the ticket and sprint README are already updated. No additional action needed.
