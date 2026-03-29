@@ -128,4 +128,6 @@ On confirmation, remove the worktree and delete the dev branch (same cleanup as 
 
 ### 9. Post-Completion
 
-After the dev-agent completes, the ticket and sprint README are already updated. No additional action needed.
+After integration (Steps 7-8), the ticket and sprint README are already updated — those changes were made by the dev-agent in the worktree and carried over by the merge.
+
+If the user chose Option 4 (keep) or Option 3 (PR), remind them that the sprint branch does not yet reflect the completed ticket. The sprint README on the sprint branch will be updated when the work is eventually merged.
