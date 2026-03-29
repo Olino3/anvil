@@ -11,8 +11,9 @@ Anvil provides a structured workflow for software development driven by AI agent
 ## Quick Start
 
 ```bash
-# Install the plugin
-claude plugin install anvil
+# Install the plugin from the marketplace
+claude /plugin marketplace add https://github.com/Olino3/anvil.git
+claude /plugin install anvil
 
 # Set up your project
 /anvil:init
