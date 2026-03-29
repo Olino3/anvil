@@ -37,7 +37,27 @@ Read the sprint's `README.md` to understand:
 Check that the current git branch matches the sprint's Branch field. If not:
 > "You're on branch `{current}` but this sprint expects `{expected}`. Switch branches first?"
 
-### 5. Dispatch dev-agent
+### 5. Create Worktree
+
+Create an isolated worktree so the dev-agent's commits don't touch the sprint branch.
+
+**Branch name:** `{sprint-branch}/dev/{ticket-id}`
+Example: if the sprint branch is `feature/mvp` and the ticket is `MVP-001`, the worktree branch is `feature/mvp/dev/MVP-001`.
+
+**Use the best available worktree mechanism, in priority order:**
+
+1. **Superpowers skill (preferred):** If `superpowers:using-git-worktrees` is listed in the available skills, invoke it via the Skill tool. Pass the desired branch name. This handles directory selection, `.gitignore` verification, project setup, and test baseline automatically.
+
+2. **Built-in EnterWorktree (fallback):** If the superpowers skill is not available, use the built-in `EnterWorktree` tool with the branch name. Note to the user:
+   > "Using built-in worktree (superpowers:using-git-worktrees not available). Project setup and test baseline were skipped."
+
+3. **Neither available (edge case):** Warn the user and offer:
+   - Proceed without isolation (current behavior — commits go directly to the sprint branch)
+   - Abort
+
+After this step, the working directory is inside the worktree on the dev branch. All subsequent work happens here.
+
+### 6. Dispatch dev-agent
 
 Dispatch the `dev-agent` with:
 - The ticket file path and contents
@@ -52,6 +72,6 @@ The dev-agent will:
 4. Execute via RED/GREEN sub-agents
 5. Update ticket status and sprint README
 
-### 6. Post-Completion
+### 9. Post-Completion
 
 After the dev-agent completes, the ticket and sprint README are already updated. No additional action needed.
