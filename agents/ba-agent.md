@@ -83,7 +83,7 @@ Write `BA-REPORT.md` in the sprint directory using the format from `skills/refer
 
 ## Success Criteria
 
-- Complete BA-REPORT.md covering all 7 analysis areas
+- Complete BA-REPORT.md covering all 6 analyses
 - All Done tickets verified (or skipped with reason)
 - README.md in sync with actual ticket files
 - No dangling or inconsistent dependency references

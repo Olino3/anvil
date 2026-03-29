@@ -64,7 +64,7 @@ init → roadmap → sprint → develop (repeat per ticket) → review → itera
 | red-agent | RED — writes failing tests |
 | green-agent | GREEN — minimum code to pass tests |
 | ba-agent | Business Analyst — sprint health and verification |
-| sprint-syncer | Syncs README status from ticket metadata |
+| sprint-syncer-agent | Syncs README status from ticket metadata |
 
 ## Project Artifacts
 
