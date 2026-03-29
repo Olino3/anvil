@@ -72,6 +72,20 @@ The dev-agent will:
 4. Execute via RED/GREEN sub-agents
 5. Update ticket status and sprint README
 
+### 7. Present Integration Options
+
+After the dev-agent completes successfully, present the user with these options for integrating the work into the sprint branch:
+
+> **How would you like to integrate this work into `{sprint-branch}`?**
+>
+> 1. **Squash merge** — Collapse all commits into one clean commit on the sprint branch. Best for clean history.
+> 2. **Merge** — Bring all TDD commits as-is onto the sprint branch. Best for preserving RED/GREEN history.
+> 3. **Create PR** — Push the branch and open a PR against the sprint branch. Best for team review.
+> 4. **Keep worktree** — Leave the worktree and branch for continued work. Nothing is integrated yet.
+> 5. **Discard** — Delete the worktree and all commits. Requires confirmation.
+
+Wait for the user to choose before proceeding to Step 8.
+
 ### 9. Post-Completion
 
 After the dev-agent completes, the ticket and sprint README are already updated. No additional action needed.
