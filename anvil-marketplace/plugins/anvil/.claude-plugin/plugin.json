@@ -1,0 +1,12 @@
+{
+  "name": "anvil",
+  "version": "1.0.0",
+  "description": "Language-agnostic agentic sprint development with TDD — ROADMAP planning, sprint tickets, RED/GREEN implementation, and BA verification",
+  "author": {
+    "name": "olino3"
+  },
+  "keywords": ["tdd", "sprint", "workflow", "red-green", "roadmap", "agents", "project-management"],
+  "agents": "./agents/",
+  "skills": "./skills/",
+  "commands": ["./commands/"]
+}
