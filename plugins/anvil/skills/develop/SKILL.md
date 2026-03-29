@@ -44,16 +44,14 @@ Create an isolated worktree so the dev-agent's commits don't touch the sprint br
 **Branch name:** `{sprint-branch}/dev/{ticket-id}`
 Example: if the sprint branch is `feature/mvp` and the ticket is `MVP-001`, the worktree branch is `feature/mvp/dev/MVP-001`.
 
-**Use the best available worktree mechanism, in priority order:**
+**Create the worktree:**
 
-1. **Superpowers skill (preferred):** If `superpowers:using-git-worktrees` is listed in the available skills, invoke it via the Skill tool. Pass the desired branch name. This handles directory selection, `.gitignore` verification, project setup, and test baseline automatically.
-
-2. **Built-in EnterWorktree (fallback):** If the superpowers skill is not available, use the built-in `EnterWorktree` tool with the branch name. Note to the user:
-   > "Using built-in worktree (superpowers:using-git-worktrees not available). Project setup and test baseline were skipped."
-
-3. **Neither available (edge case):** Warn the user and offer:
-   - Proceed without isolation (current behavior — commits go directly to the sprint branch)
-   - Abort
+1. Determine the worktree path. Use `.worktrees/{ticket-id}` relative to the git root. If `.worktrees/` doesn't exist, create it and ensure it's in `.gitignore`.
+2. Create the worktree and branch:
+   ```
+   git worktree add .worktrees/{ticket-id} -b {sprint-branch}/dev/{ticket-id}
+   ```
+3. Change working directory to the worktree path.
 
 After this step, the working directory is inside the worktree on the dev branch. All subsequent work happens here.
 
@@ -97,15 +95,21 @@ git merge --squash {worktree-branch}
 git commit -m "feat({component}): implement {ticket-id} — {ticket title}"
 ```
 Then remove the worktree and delete the dev branch:
-- If worktree was created with `EnterWorktree`: use `ExitWorktree`
-- If worktree was created with superpowers skill: `git worktree remove {path}` then `git branch -D {worktree-branch}`
+```
+git worktree remove .worktrees/{ticket-id}
+git branch -D {worktree-branch}
+```
 
 **Option 2 — Merge:**
 ```
 git checkout {sprint-branch}
 git merge {worktree-branch}
 ```
-Then remove worktree and delete dev branch (same cleanup as Option 1).
+Then remove worktree and delete dev branch:
+```
+git worktree remove .worktrees/{ticket-id}
+git branch -D {worktree-branch}
+```
 
 **Option 3 — Create PR:**
 ```
@@ -124,7 +128,12 @@ No git operations. Report to the user:
 Confirm with the user first:
 > "This will delete the worktree and all {N} commits on `{worktree-branch}`. Are you sure?"
 
-On confirmation, remove the worktree and delete the dev branch (same cleanup as Option 1). If the user declines, go back to Step 7 to choose again.
+On confirmation, remove the worktree and delete the dev branch:
+```
+git worktree remove .worktrees/{ticket-id}
+git branch -D {worktree-branch}
+```
+If the user declines, go back to Step 7 to choose again.
 
 ### 9. Post-Completion
 
