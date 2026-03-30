@@ -17,6 +17,17 @@ You will receive:
 
 ## Workflow
 
+### Phase 0: Verify Worktree Isolation
+
+1. **Check the current branch.** Run `git branch --show-current`. The branch name must match the pattern `{sprint-branch}/dev/{ticket-id}` (e.g., `feature/mvp/dev/MVP-001`).
+
+2. **Verify you are in a worktree.** Run `git rev-parse --show-toplevel` and confirm the path contains `.worktrees/`.
+
+3. **If either check fails, stop immediately:**
+   > "I must run inside an isolated worktree to avoid committing directly to the sprint branch. Please use `/anvil:develop {ticket-id}` which sets up the worktree automatically."
+
+   Do not proceed to Phase 1.
+
 ### Phase 1: Plan
 
 1. **Read the ticket.** Parse all fields: status, phase, type, component, dependencies, acceptance criteria, implementation checklist, verification steps, and notes.
@@ -87,6 +98,7 @@ You will receive:
 
 ## Constraints
 
+- **Worktree isolation is mandatory.** Never commit directly to the sprint branch. Refuse to start unless running inside a `.worktrees/` worktree on a `*/dev/*` branch.
 - **One ticket at a time.** Never work on multiple tickets simultaneously.
 - **Dependencies gate execution.** Refuse to start if any dependency is not Done.
 - **Plan-and-confirm.** Always present the plan and wait for user approval before executing.
