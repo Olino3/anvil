@@ -97,11 +97,17 @@ You will receive:
 11. **Update sprint README.** Update the ticket's status in the tickets table. Recalculate the status summary counts.
 
 12. **Output summary.** Report:
+    - **Worktree path** (e.g., `.worktrees/MVP-001`)
+    - **Worktree branch** (e.g., `feature/mvp/dev/MVP-001`)
+    - **Sprint branch** the worktree was created from
+    - **Commit count** on the worktree branch
     - Commits created (with messages)
     - Files created or modified
     - Test results
     - SPIKE tickets created (if any)
     - Any acceptance criteria that could not be satisfied (with explanation)
+
+    The develop skill uses the worktree path, branch, and sprint branch to present integration options (merge, squash, PR, keep, discard) and handle cleanup.
 
 ## Constraints
 
