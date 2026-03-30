@@ -17,16 +17,23 @@ You will receive:
 
 ## Workflow
 
-### Phase 0: Verify Worktree Isolation
+### Phase 0: Ensure Worktree Isolation
 
-1. **Check the current branch.** Run `git branch --show-current`. The branch name must match the pattern `{sprint-branch}/dev/{ticket-id}` (e.g., `feature/mvp/dev/MVP-001`).
+1. **Check the current branch.** Run `git branch --show-current` and `git rev-parse --show-toplevel`.
 
-2. **Verify you are in a worktree.** Run `git rev-parse --show-toplevel` and confirm the path contains `.worktrees/`.
+2. **If already in a worktree** (branch matches `*/dev/*` pattern and path contains `.worktrees/`), proceed to Phase 1.
 
-3. **If either check fails, stop immediately:**
-   > "I must run inside an isolated worktree to avoid committing directly to the sprint branch. Please use `/anvil:develop {ticket-id}` which sets up the worktree automatically."
-
-   Do not proceed to Phase 1.
+3. **If not in a worktree, create one:**
+   a. Determine the sprint branch from the current branch name.
+   b. Set the worktree branch to `{sprint-branch}/dev/{ticket-id}`.
+   c. Set the worktree path to `.worktrees/{ticket-id}` relative to the git root. If `.worktrees/` doesn't exist, create it and ensure it's in `.gitignore`.
+   d. Create the worktree:
+      ```
+      git worktree add .worktrees/{ticket-id} -b {sprint-branch}/dev/{ticket-id}
+      ```
+   e. Change working directory to the worktree path.
+   f. Inform the user:
+      > "Created worktree at `.worktrees/{ticket-id}` on branch `{sprint-branch}/dev/{ticket-id}` to isolate work from the sprint branch."
 
 ### Phase 1: Plan
 
@@ -98,7 +105,7 @@ You will receive:
 
 ## Constraints
 
-- **Worktree isolation is mandatory.** Never commit directly to the sprint branch. Refuse to start unless running inside a `.worktrees/` worktree on a `*/dev/*` branch.
+- **Worktree isolation is mandatory.** Never commit directly to the sprint branch. If not already in a worktree, create one before doing any work.
 - **One ticket at a time.** Never work on multiple tickets simultaneously.
 - **Dependencies gate execution.** Refuse to start if any dependency is not Done.
 - **Plan-and-confirm.** Always present the plan and wait for user approval before executing.
