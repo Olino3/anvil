@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "preset": "projects-prompts",
+  "paths": {
+    "reports": "Reports",
+    "prompts": "Prompts",
+    "sessions": "Sessions",
+    "maps": "Maps",
+    "notes": "Notes",
+    "projects": "Projects"
+  },
+  "personalization": {
+    "voice": "bulleted",
+    "depth": "summary",
+    "link_style": "wikilink",
+    "tag_prefix": "",
+    "frontmatter_fields": ["tags", "related", "source", "project"]
+  }
+}
