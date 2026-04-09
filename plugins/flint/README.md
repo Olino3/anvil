@@ -27,4 +27,3 @@ Flint writes plain markdown directly to a user-configured vault folder. No Obsid
 | `/flint:session-note` | Summarize current session into a note |
 | `/flint:deep-note` | Expand a report section into full notes |
 
-See `docs/superpowers/specs/2026-04-09-flint-plugin-design.md` for design.
