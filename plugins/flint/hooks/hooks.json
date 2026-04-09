@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      { "command": "$FLINT_VAULT/.flint/user-prompt-submit.sh" }
+    ]
+  }
+}
