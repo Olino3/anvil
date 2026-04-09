@@ -17,7 +17,7 @@ User invokes `/flint:deep-note <path-to-report> <section-heading>`. Both require
 4. Invoke `note-style` for voice/depth rules. Force `depth: detailed` for this command even if the user's default is `summary` — deep notes are always detailed.
 5. Expand the section into one or more notes:
    - One note per subsection (H3) inside the target section
-   - Each note gets canonical frontmatter with `source: flint/deep-note` and `related: [[<report-title>]]`
+   - Each note gets canonical frontmatter with `source: flint/deep-note` and `related: ["[[<report-title>]]"]`
    - Filename: `<notes>/<YYYY-MM-DD>-deep-<slug>.md`
-6. Invoke `hybrid-linking`: propose related links to existing notes in the vault. Present for review. Write only accepted proposals into `related`.
+6. Invoke `hybrid-linking`: propose related links to existing notes in the vault. Present for review. Add only accepted proposals to `related` as quoted YAML list entries.
 7. Print the list of created paths.

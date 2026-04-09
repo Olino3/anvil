@@ -20,7 +20,7 @@ description: Build or update a Map of Content page for a targeted vault section,
    - One H2 per tag group (or topical subgroup)
    - Under each H2, a bulleted list of `[[wikilinks]]` with a one-line hint per note (from the note's `title` and first bullet)
    - A "Related Maps" section linking to any sibling MOCs under `<maps>/`
-4. Canonical frontmatter: `source: flint/content-mapping`, `tags: [moc, <section>]`, `related: [<top 5 most-linked notes in section>]`.
+4. Canonical frontmatter: `source: flint/content-mapping`, `tags: [moc, "<section-slug>"]`, `related: [<top 5 most-linked notes in section>]`. Use a lowercase, hyphenated slug derived from the target section for `<section-slug>`.
 
 ## Writing rule
 

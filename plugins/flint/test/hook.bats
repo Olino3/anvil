@@ -39,6 +39,9 @@ teardown() {
 }
 
 @test "skips malformed JSON input silently" {
+  log="$FLINT_VAULT/.flint/prompts.log"
   run bash -c 'echo "not json" | "$0"' "$HOOK"
   [ "$status" -eq 0 ]
+  # prompts.log must not be created (no entry written for malformed input)
+  [ ! -f "$log" ]
 }
