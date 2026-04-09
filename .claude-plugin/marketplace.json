@@ -8,6 +8,11 @@
       "name": "anvil",
       "source": "./plugins/anvil",
       "description": "Adds anvil's sprint management plugin"
+    },
+    {
+      "name": "flint",
+      "source": "./plugins/flint",
+      "description": "Adds flint, a note taker for obsidian"
     }
   ]
 }
