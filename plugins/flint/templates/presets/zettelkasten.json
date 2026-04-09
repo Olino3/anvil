@@ -1,0 +1,11 @@
+{
+  "preset": "zettelkasten",
+  "paths": {
+    "notes": "Notes",
+    "maps": "Maps",
+    "prompts": "Prompts",
+    "sessions": "Sessions",
+    "reports": "Reports",
+    "projects": "Projects"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "preset": "research",
+  "paths": {
+    "notes": "Topics",
+    "sources": "Sources",
+    "maps": "Maps",
+    "reports": "Reports",
+    "prompts": "Prompts",
+    "sessions": "Sessions",
+    "projects": "Projects"
+  }
+}

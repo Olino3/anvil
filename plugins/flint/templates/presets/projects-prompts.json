@@ -1,0 +1,11 @@
+{
+  "preset": "projects-prompts",
+  "paths": {
+    "projects": "Projects",
+    "prompts": "Prompts",
+    "sessions": "Sessions",
+    "reports": "Reports",
+    "maps": "Maps",
+    "notes": "Notes"
+  }
+}
