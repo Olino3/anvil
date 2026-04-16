@@ -27,7 +27,7 @@ apm install anvil@anvil-plugins --target {copilot|cursor|opencode|codex}
 Or pin a version directly from git:
 
 ```bash
-apm install Olino3/anvil#v1.3.0 --target <host>
+apm install Olino3/anvil#v1.4.0 --target <host>
 ```
 
 APM deploys content into each host's native directory (`.claude/`, `.github/`, `.cursor/`, `.opencode/`).
