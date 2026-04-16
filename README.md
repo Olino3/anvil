@@ -79,6 +79,8 @@ init → roadmap → sprint → develop (repeat per ticket) → review → itera
 4. **Develop** — Implement tickets one at a time with TDD (RED → GREEN → REFACTOR)
 5. **Review** — Verify completed work, check ROADMAP coverage, sync artifacts
 
+For the full playbook — greenfield loop, sprint/roadmap course corrections, TDD granularities, drift recovery, and phase lifecycle — see [Workflows.md](Workflows.md).
+
 ## Agents
 
 | Agent | Role |
