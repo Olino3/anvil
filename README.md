@@ -8,13 +8,37 @@ Anvil provides a structured workflow for software development driven by AI agent
 
 **pd-agent** creates ROADMAP → **pm-agent** creates sprint → **dev-agent** completes tickets via TDD using **red-agent** and **green-agent** → **ba-agent** reviews sprint health
 
+## Install
+
+**Claude Code** (primary target):
+
+```bash
+claude /plugin marketplace add https://github.com/Olino3/anvil.git
+claude /plugin install anvil
+```
+
+**Copilot CLI, Cursor, OpenCode, or Codex** (via [Microsoft APM](https://github.com/microsoft/apm)):
+
+```bash
+apm marketplace add Olino3/anvil
+apm install anvil@anvil-plugins --target {copilot|cursor|opencode|codex}
+```
+
+Or pin a version directly from git:
+
+```bash
+apm install Olino3/anvil#v1.3.0 --target <host>
+```
+
+APM deploys content into each host's native directory (`.claude/`, `.github/`, `.cursor/`, `.opencode/`).
+
+### Cross-platform support
+
+Anvil is authored Claude Code-first. The full automated TDD workflow — where `dev-agent` dispatches `red-agent`, `green-agent`, and `ba-agent` as sub-agents — depends on Claude Code's Task-dispatch runtime and runs end-to-end only on Claude Code. On Copilot CLI and Cursor, the same files install as selectable agent personas that a user invokes manually; skills and slash commands work as prompts. The TDD discipline remains the same; the orchestration is manual.
+
 ## Quick Start
 
 ```bash
-# Install the plugin from the marketplace
-claude /plugin marketplace add https://github.com/Olino3/anvil.git
-claude /plugin install anvil
-
 # Set up your project
 /anvil:init
 

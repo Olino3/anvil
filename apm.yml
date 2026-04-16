@@ -1,0 +1,16 @@
+name: anvil
+version: 1.3.0
+description: Language-agnostic agentic sprint development with TDD — ROADMAP planning, sprint tickets, RED/GREEN implementation, and BA verification.
+
+# APM (Microsoft Agent Package Manager) compatibility layer.
+#
+# anvil is authored as a Claude Code plugin marketplace; the canonical layout
+# lives under plugins/anvil/ with .claude-plugin/marketplace.json at the repo
+# root. APM's marketplace loader understands Claude Code's marketplace.json
+# format natively, so Copilot CLI, Cursor, OpenCode, and Codex users can
+# install via:
+#
+#   apm marketplace add Olino3/anvil
+#   apm install anvil@anvil-plugins --target {copilot|cursor|opencode|codex}
+#
+# No .apm/ mirror is needed.
