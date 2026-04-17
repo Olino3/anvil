@@ -17,7 +17,7 @@ Create a sprint from a ROADMAP phase.
 ### 1. Verify Config
 
 Read `docs/anvil/config.yml`. If it doesn't exist:
-> "Anvil isn't configured for this project yet. Run `/anvil:init` first."
+> "Anvil isn't configured for this project yet. Run `/anvil:anvil-init` first."
 
 Stop and wait.
 

@@ -4,7 +4,7 @@
 
 This is the **playbook** for Anvil — the day-to-day recipes for using the commands together, not a reference for what each command does in isolation. Each workflow below is a numbered sequence with example prompts you can adapt and an "Artifacts touched" note so you know what's about to change on disk.
 
-Assumed reader: you've installed Anvil and know that it ships with seven slash commands (`/anvil:init`, `/anvil:roadmap`, `/anvil:sprint`, `/anvil:develop`, `/anvil:review`, `/anvil:sync`, `/anvil:status`). If not, see [README.md](README.md) first.
+Assumed reader: you've installed Anvil and know that it ships with seven slash commands (`/anvil:anvil-init`, `/anvil:roadmap`, `/anvil:sprint`, `/anvil:develop`, `/anvil:review`, `/anvil:sync`, `/anvil:status`). If not, see [README.md](README.md) first.
 
 For artifact **formats** (what a ROADMAP.md, sprint README, ticket, or BA report should look like), see the reference docs under [`plugins/anvil/skills/reference/`](plugins/anvil/skills/reference/). This doc links to them rather than duplicating.
 
@@ -14,7 +14,7 @@ For artifact **formats** (what a ROADMAP.md, sprint README, ticket, or BA report
 
 | Command | One-liner | Key arg | Agent dispatched |
 |---|---|---|---|
-| `/anvil:init` | Detect stack and write project config | — | (interactive, no sub-agent) |
+| `/anvil:anvil-init` | Detect stack and write project config | — | (interactive, no sub-agent) |
 | `/anvil:roadmap` | Create or update `ROADMAP.md` | — | `pd-agent` |
 | `/anvil:sprint <phase>` | Break a ROADMAP phase into tickets | phase name / number / prefix | `pm-agent` |
 | `/anvil:develop <ticket>` | Implement a ticket via TDD | ticket ID (e.g. `MVP-001`) | `dev-agent` → `red-agent` / `green-agent` |
@@ -28,7 +28,7 @@ What each command touches:
 
 | Command | Writes / modifies |
 |---|---|
-| `/anvil:init` | `docs/anvil/config.yml` |
+| `/anvil:anvil-init` | `docs/anvil/config.yml` |
 | `/anvil:roadmap` | `ROADMAP.md` |
 | `/anvil:sprint` | `docs/anvil/sprints/{version}-{slug}/` (directory + ticket files + `README.md`); creates sprint feature branch |
 | `/anvil:develop` | `.worktrees/{ticket-id}/` (git worktree on branch `{sprint-branch}/dev/{ticket-id}`); the ticket file; the sprint `README.md`; RED/GREEN/REFACTOR commits |
@@ -48,7 +48,7 @@ The canonical greenfield playbook, from empty repo to a completed phase and on t
 
 **Recipe:**
 
-1. `/anvil:init` — Anvil conversationally detects your stack and writes `docs/anvil/config.yml` with per-component test/build/lint commands.
+1. `/anvil:anvil-init` — Anvil conversationally detects your stack and writes `docs/anvil/config.yml` with per-component test/build/lint commands.
 2. `/anvil:roadmap` — dispatches `pd-agent` to converse with you about phases, goals, deliverables, and prefixes.
 3. Skim the generated `ROADMAP.md`. Confirm each phase has: a **prefix** (3–5 uppercase chars, e.g. `MVP`, `AUTH`), a **theme**, at least one measurable **goal**, and a **Deliverables** checklist.
 
@@ -338,7 +338,7 @@ Anvil is sprint-centric; hotfixes live outside it. Recommended pattern:
 - **Worktrees live under `.worktrees/`**, which is added to `.gitignore` automatically the first time `/anvil:develop` runs.
 - **Never commit directly to the sprint branch.** Always go through `/anvil:develop`'s worktree. If you bypass it, the integration options won't apply and the sprint branch's history loses the TDD structure.
 - **Every ticket's `Component:` field must match a key in `docs/anvil/config.yml`.** If it doesn't, `/anvil:develop` won't know which test/build commands to run. Update either the ticket or `config.yml` so they match.
-- **`/anvil:roadmap` has no arguments.** Intent is expressed by talking to `pd-agent` *after* the dispatch. Same for `/anvil:init`.
+- **`/anvil:roadmap` has no arguments.** Intent is expressed by talking to `pd-agent` *after* the dispatch. Same for `/anvil:anvil-init`.
 - **`/anvil:review` does not auto-downgrade a Done ticket whose verification fails.** It flags the failure in `BA-REPORT.md` and leaves the status alone. You decide whether to reopen.
 - **Bidirectional dependencies** — if ticket A lists `Depends on: B`, then B must list `Blocks: A`. If you edit one side manually, `/anvil:review` will heal the other.
 - **SPIKE tickets are first-class.** They carry a `SPIKE-NNN` ID (instead of the phase prefix), show up in the sprint README, and are picked up by `/anvil:develop` like any other ticket.
