@@ -70,7 +70,7 @@ Anvil is authored Claude Code-first. The full automated TDD workflow — where `
 ## Workflow
 
 ```
-init → roadmap → sprint → develop (repeat per ticket) → review → iterate
+anvil-init → roadmap → sprint → develop (repeat per ticket) → review → iterate
 ```
 
 1. **Init** — Configure your project's components, test commands, and git conventions
