@@ -17,7 +17,7 @@ Create or update the project's ROADMAP.md through collaborative planning.
 ### 1. Verify Config
 
 Read `docs/anvil/config.yml`. If it doesn't exist:
-> "Anvil isn't configured for this project yet. Run `/anvil:init` first to set up the project config."
+> "Anvil isn't configured for this project yet. Run `/anvil:anvil-init` first to set up the project config."
 
 Stop and wait for the user.
 

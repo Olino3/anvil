@@ -1,5 +1,5 @@
 ---
-name: init
+name: anvil-init
 description: Set up anvil for this project — detect tech stack, configure components, write config
 ---
 

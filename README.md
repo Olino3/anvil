@@ -40,7 +40,7 @@ Anvil is authored Claude Code-first. The full automated TDD workflow — where `
 
 ```bash
 # Set up your project
-/anvil:init
+/anvil:anvil-init
 
 # Create a project roadmap
 /anvil:roadmap
@@ -59,7 +59,7 @@ Anvil is authored Claude Code-first. The full automated TDD workflow — where `
 
 | Command | Purpose |
 |---|---|
-| `/anvil:init` | Interactive project setup — detect stack, write config |
+| `/anvil:anvil-init` | Interactive project setup — detect stack, write config |
 | `/anvil:roadmap` | Create or update ROADMAP.md |
 | `/anvil:sprint <phase>` | Break a ROADMAP phase into sprint tickets |
 | `/anvil:develop <ticket>` | Implement a ticket using TDD |
@@ -70,7 +70,7 @@ Anvil is authored Claude Code-first. The full automated TDD workflow — where `
 ## Workflow
 
 ```
-init → roadmap → sprint → develop (repeat per ticket) → review → iterate
+anvil-init → roadmap → sprint → develop (repeat per ticket) → review → iterate
 ```
 
 1. **Init** — Configure your project's components, test commands, and git conventions
@@ -112,7 +112,7 @@ project-root/
 
 ## Language Support
 
-Anvil is language-agnostic. It discovers your tech stack during `/anvil:init` and reads test/build commands from `docs/anvil/config.yml` at runtime. Works with any language that has a test runner.
+Anvil is language-agnostic. It discovers your tech stack during `/anvil:anvil-init` and reads test/build commands from `docs/anvil/config.yml` at runtime. Works with any language that has a test runner.
 
 ## TDD Enforcement
 

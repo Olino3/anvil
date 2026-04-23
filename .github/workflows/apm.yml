@@ -19,15 +19,15 @@ jobs:
 
       - name: Install APM
         run: |
-          curl -fsSL https://github.com/microsoft/apm/releases/latest/download/apm-linux-x64 -o apm
-          chmod +x apm
-          ./apm --version
+          curl -fsSL https://github.com/microsoft/apm/releases/latest/download/apm-linux-x86_64.tar.gz -o apm.tar.gz
+          tar -xzf apm.tar.gz
+          ./apm-linux-x86_64/apm --version
 
       - name: Audit for hidden Unicode and compromised packages
-        run: ./apm audit .
+        run: ./apm-linux-x86_64/apm audit .
 
       - name: Pack plugin artifact for all targets
-        run: ./apm pack --format plugin --target all --output ./build
+        run: ./apm-linux-x86_64/apm pack --format plugin --target all --output ./build
 
       - name: Upload plugin build
         uses: actions/upload-artifact@v4
