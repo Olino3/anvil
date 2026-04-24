@@ -2,7 +2,7 @@ name: anvil-core-stable
 version: 2.0.0
 description: Anvil discipline — agents, skills, and parameterized prompts for human-driven sprint TDD. No dispatch.
 author: Olino3
-license: MIT
+license: GPL-3.0
 dependencies:
   apm:
     - Olino3/anvil/packages/anvil-common-stable

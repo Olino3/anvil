@@ -2,7 +2,7 @@ name: anvil-orchestrator-stable
 version: 2.0.0
 description: Anvil orchestrator — high-level human-in-the-loop automation for sprint TDD. One stage, one approval, full inner loop.
 author: Olino3
-license: MIT
+license: GPL-3.0
 dependencies:
   apm:
     - Olino3/anvil/packages/anvil-common-stable
