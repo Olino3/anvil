@@ -1,12 +1,14 @@
 ---
 name: sprint-readme-format
-description: Reference — structure of docs/anvil/sprints/*/README.md (tickets table, dependency graph, counts). Consult when creating or updating a sprint README.
+description: Use when creating or updating `docs/anvil/sprints/*/README.md`.
 user-invocable: false
 ---
 
 # Sprint README Format
 
 Reference file for pm-agent, ba-agent, sprint-syncer-agent, and dev-agent. Defines the canonical format for sprint README.md files.
+
+**Source of truth:** ticket files, not this README. The README is regenerated from ticket metadata.
 
 ## Location
 
@@ -16,7 +18,7 @@ Sprint directory naming:
 - With version: `{version}-{phase-slug}/` (e.g., `v1.0.0-mvp/`)
 - Without version: `{phase-slug}/` (e.g., `mvp/`)
 
-Phase slug is the phase name in lowercase kebab-case.
+Phase slug is the phase name in lowercase kebab-case. For example, "Auth System" → `auth-system`; "MVP" → `mvp`.
 
 ## Template
 
@@ -33,33 +35,38 @@ Phase slug is the phase name in lowercase kebab-case.
 
 | ID | Title | Component | Status | Depends On |
 |---|---|---|---|---|
-| [{PREFIX}-001]({PREFIX}-001-slug.md) | {Title} | {component} | Open | -- |
-| [{PREFIX}-002]({PREFIX}-002-slug.md) | {Title} | {component} | Open | {PREFIX}-001 |
-| [SPIKE-001](SPIKE-001-slug.md) | {Title} | {component} | Open | -- |
+| [{PREFIX}-001]({PREFIX}-001-slug.md) | User login | auth | Done | — |
+| [{PREFIX}-002]({PREFIX}-002-slug.md) | Session management | auth | In Progress | {PREFIX}-001 |
+| [{PREFIX}-003]({PREFIX}-003-slug.md) | Logout flow | auth | Open | {PREFIX}-002 |
+| [SPIKE-001](SPIKE-001-slug.md) | Evaluate JWT libraries | auth | Open | — |
 
 ## Dependency Graph
 
-{PREFIX}-001 ({short label})
-  ├── {PREFIX}-002 ({short label})
-  │   └── {PREFIX}-003 ({short label})
-  └── {PREFIX}-004 ({short label})
+{PREFIX}-001 (User login)
+├── {PREFIX}-002 (Session management)
+│   └── {PREFIX}-003 (Logout flow)
+└── SPIKE-001 (JWT evaluation)
 
 ## Status Summary
 
 | Status | Count | Tickets |
 |---|---|---|
-| Done | 0 | — |
-| In Progress | 0 | — |
-| Open | {N} | {ticket list} |
+| Done | 1 | {PREFIX}-001 |
+| In Progress | 1 | {PREFIX}-002 |
+| Open | 2 | {PREFIX}-003, SPIKE-001 |
 | Blocked | 0 | — |
 
 ## Definition of Done
 
-- [ ] {High-level criterion from ROADMAP deliverables}
+- [ ] All ROADMAP deliverables implemented and tested
 - [ ] All tickets Done and verified
 - [ ] All tests pass
-- [ ] BA report clean
+- [ ] BA report clean (no gaps, no blockers)
 ```
+
+**Placeholder legend:**
+- `{var}` = substitute literal value
+- `{branch_prefix from config}` = look up `git.branch_prefix` in `docs/anvil/config.yml`
 
 ## Section Responsibilities
 
@@ -71,9 +78,29 @@ Phase slug is the phase name in lowercase kebab-case.
 | Status Summary | pm-agent | ba-agent, sprint-syncer |
 | Definition of Done | pm-agent (from ROADMAP) | ba-agent (checks boxes) |
 
-## Update Rules
+## Update Triggers & Procedures
 
-- When dev-agent marks a ticket In Progress or Done, it updates the Status column in the Tickets table and recalculates the Status Summary
-- When dev-agent creates a SPIKE ticket, it adds a row to the Tickets table and updates the Dependency Graph
-- ba-agent rebuilds all sections during review
-- sprint-syncer-agent rebuilds Tickets table and Status Summary from ticket file metadata (source of truth is the ticket files, not the README)
+| Trigger | Action | Actor | Notes |
+|---|---|---|---|
+| Ticket status changes (Open → In Progress → Done) | Edit Tickets table status cell + recompute Status Summary counts | dev-agent, ba-agent | Do not modify other sections |
+| New ticket added to sprint | Append row to Tickets table + update Dependency Graph + recompute Status Summary | pm-agent or sprint-syncer | Update graph when ticket has `Depends On` |
+| New SPIKE created | Append SPIKE row to Tickets table + update Dependency Graph with SPIKE node | dev-agent | SPIKE does not block; normal tickets depend on it if needed |
+| Full sprint sync | Read all ticket files in sprint directory; regenerate Tickets table and Status Summary from scratch; preserve Header and Definition of Done sections | sprint-syncer-agent | Regenerate means overwrite, not merge; source of truth is ticket files |
+
+## Validation
+
+Before writing README.md:
+
+- [ ] Table row count == ticket file count in the sprint directory
+- [ ] Every `Depends On` entry resolves to a row in the Tickets table (or is `—`)
+- [ ] Status Summary counts sum to total tickets: Done + In Progress + Open + Blocked = Total
+- [ ] Dependency Graph nodes exist in the Tickets table
+- [ ] Status enum values (`Done`, `In Progress`, `Open`, `Blocked`) are exact and capitalized
+
+## Status Enum
+
+Valid status values (exact, case-sensitive):
+- `Open` — new ticket, not started
+- `In Progress` — active work
+- `Done` — implementation complete and verified
+- `Blocked` — waiting on a dependency

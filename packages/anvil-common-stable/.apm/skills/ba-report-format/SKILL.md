@@ -1,6 +1,6 @@
 ---
 name: ba-report-format
-description: Reference — structure of BA-REPORT.md. Consult when producing or reading a sprint BA report.
+description: Load before producing or reading `docs/anvil/sprints/*/BA-REPORT.md` sprint health reports.
 user-invocable: false
 ---
 
@@ -21,7 +21,7 @@ The report is written inside the sprint directory it analyzes.
 
 **Date:** {YYYY-MM-DD}
 **Phase:** {N} — {Theme}
-**Sprint:** docs/anvil/sprints/{directory}/
+**Sprint:** docs/anvil/sprints/{sprint-directory}/
 
 ---
 
@@ -29,10 +29,10 @@ The report is written inside the sprint directory it analyzes.
 
 | Status | Count | Tickets |
 |---|---|---|
-| Done | {N} | {PREFIX}-001, {PREFIX}-002, ... |
-| In Progress | {N} | ... |
-| Open | {N} | ... |
-| Blocked | {N} | ... |
+| Done | {N} | {PREFIX}-001, {PREFIX}-002, {PREFIX}-003 |
+| In Progress | {N} | {PREFIX}-004, {PREFIX}-005 |
+| Open | {N} | {PREFIX}-006 |
+| Blocked | {N} | — |
 
 **Total:** {N} tickets
 
@@ -89,16 +89,35 @@ The report is written inside the sprint directory it analyzes.
 
 | Section | Required | Empty State |
 |---|---|---|
-| Status Distribution | Always | N/A — there are always tickets |
+| Status Distribution | Always | Never empty |
 | Verification Results | Only if any ticket is Done | "No tickets in Done status." |
 | Gap Analysis | Always | "All ROADMAP deliverables have ticket coverage. No scope creep detected." |
 | Dependency Issues | Always | "All dependencies are consistent. No circular dependencies." |
 | Actions Taken | Always | "No autonomous actions taken." |
 | Recommendations | Always | "Sprint is healthy. No recommendations." |
 
-## Verification Command Rules
+## Verification Command Execution
 
-- Run each Done ticket's Verification Steps commands as-is
+- Source: extract commands from each Done ticket's `## Verification Steps` section
+- Run from repo root unless the ticket specifies a different working directory
 - If a command requires `sudo` or hardware access, mark as SKIPPED with reason
-- If a command fails, record the error output (truncated to 5 lines)
+- If a command fails, record the last 5 lines of stderr+stdout, fenced as a code block in the Issues column
+- Example: `` `ERROR: connection refused` ``
 - A ticket with ANY failed verification is reported as FAIL — do NOT change its status
+
+## Ticket List Format
+
+- List all ticket IDs comma-separated in Status Distribution table cells
+- Do not truncate; include all IDs for each status
+- Format: `{PREFIX}-001, {PREFIX}-002, {PREFIX}-003`
+
+## Idempotency
+
+- If `BA-REPORT.md` already exists, overwrite it completely
+- Do not append dated sections or preserve old reports
+- Each run produces a single, current report reflecting the live sprint state
+
+## Actions Taken Scope
+
+- Only record actions the agent is authorized to perform autonomously per ba-agent's policy
+- Actions requiring approval go under Recommendations instead

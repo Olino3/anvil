@@ -1,6 +1,6 @@
 ---
 name: roadmap-format
-description: Reference — structure of ROADMAP.md (phases, prefixes, goals, deliverables, avoid-deepening). Consult when creating or editing ROADMAP.md.
+description: Use when creating, validating, or editing `ROADMAP.md` phases and deliverables.
 user-invocable: false
 ---
 
@@ -36,8 +36,10 @@ Reference file for pd-agent and ba-agent. Defines the canonical structure of `RO
 - [ ] {Deliverable}
 
 #### Avoid Deepening
-_{Areas to avoid investing in because a later phase replaces them.}_
-- {Area} — {which phase replaces it}
+
+Areas to avoid investing in because a later phase replaces them.
+
+- {Area} — {which phase replaces it (or TBD if undetermined)}
 
 #### Notes
 - {Constraints, risks, dependencies on external systems}
@@ -45,7 +47,7 @@ _{Areas to avoid investing in because a later phase replaces them.}_
 
 ---
 
-*(repeat for each phase)*
+<!-- repeat for each phase -->
 ```
 
 ## Field Semantics
@@ -64,7 +66,7 @@ _{Areas to avoid investing in because a later phase replaces them.}_
 
 ## Phase Ordering
 
-Phases are numbered sequentially. Dependencies between phases are implicit in ordering — Phase N should be completable without Phase N+1.
+Phases are numbered sequentially. Phase N MUST be completable using only artifacts from Phases 1..N-1; no forward references or dependencies on future phases are permitted.
 
 ## Prefix Rules
 
@@ -72,13 +74,39 @@ Phases are numbered sequentially. Dependencies between phases are implicit in or
 - Must be unique across all phases in the ROADMAP
 - Used as ticket ID prefix in sprints: `AUTH-001`, `AUTH-002`, etc.
 - SPIKE tickets use a separate `SPIKE-NNN` sequence per sprint
+- On collision (e.g., "AUTH" derived twice), suffix with phase number (`AUTH2`) or pick the next-most-distinctive token
+- Never silently overwrite an existing prefix
+
+## Negative Examples
+
+- ❌ Do NOT use lowercase prefixes (e.g., `auth`; use `AUTH`)
+- ❌ Do NOT omit Status, Prefix, or Theme fields
+- ❌ Do NOT create circular phase dependencies (e.g., Phase 2 requires Phase 3)
+- ❌ Do NOT reference a future phase in "Avoid Deepening" unless that phase exists
 
 ## Status Transitions
 
-```
-Not Started → In Progress → Complete
-```
+| From | To | Trigger | Actor |
+|---|---|---|---|
+| Not Started | In Progress | `/anvil:sprint` is run | pd-agent |
+| In Progress | Complete (recommended) | All sprint tickets Done and verified | ba-agent (recommends) |
+| In Progress | Complete (final) | ba-agent recommendation accepted | pd-agent |
 
-- pd-agent sets `In Progress` when `/anvil:sprint` is run for the phase
-- ba-agent recommends `Complete` when all sprint tickets are Done and verified
-- pd-agent makes the final status update
+## Procedure
+
+When invoked to create or update ROADMAP.md:
+
+1. Read the existing `ROADMAP.md` if present; validate against Field Semantics rules below
+2. Validate each phase: unique Prefix, valid Status, at least one Goal and Deliverable
+3. Check phase ordering: Phase N references only Phases 1..N-1 in Avoid Deepening
+4. Emit the complete updated ROADMAP.md in a single fenced markdown block; do not include prose outside the fence
+5. Report any rule violations before writing
+
+## Pre-Write Validation Checklist
+
+- [ ] Every phase has a unique 3–5 character uppercase Prefix
+- [ ] Every phase Status is one of: `Not Started`, `In Progress`, `Complete`
+- [ ] Every Deliverable line begins with `- [ ]` or `- [x]`
+- [ ] No circular dependencies between phases
+- [ ] No forward references in Avoid Deepening (all referenced future phases exist)
+- [ ] No duplicate Prefix values, even within Avoid Deepening references
