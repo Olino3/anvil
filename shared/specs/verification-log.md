@@ -156,3 +156,44 @@ Both of these are instruction-precision improvements, not design bugs.
 Candidates for a post-2.0.0 follow-up ticket.
 
 Issues: none blocking.
+
+## 2026-04-24 — Phase 6 Copilot CLI host spot-check
+
+Scratch project: `/tmp/anvil-v2-scratch-copilot`
+Host: GitHub Copilot CLI 1.0.36
+Packages: anvil-orchestrator-stable (+ anvil-core-stable + anvil-common-stable)
+Install target: copilot (compiled to `.github/agents/`, `.github/prompts/`,
+`.github/skills/`, `.github/instructions/`)
+
+Result: `/anvil:develop MVP-001` flow worked end-to-end — `@dev-plan`
+dispatched, user approved plan, `@red` and `@green` dispatched flat as
+real sub-agents, verification inline, ticket/README updated, integration
+choice presented.
+
+Sub-agent dispatch on Copilot: worked (no inline fallback needed).
+
+Implication: orchestrator-path works on Copilot CLI with the same
+flattened-in-main-session + `@dev-plan` design as Claude Code. No
+host-specific branching needed.
+
+## 2026-04-24 — Phase 6 OpenCode host spot-check
+
+Scratch project: `/tmp/anvil-v2-scratch-opencode`
+Host: OpenCode 1.14.22
+Packages: anvil-orchestrator-stable (+ anvil-core-stable + anvil-common-stable)
+Install target: opencode (compiled to `.opencode/agents/`,
+`.opencode/commands/`, `.opencode/skills/`)
+
+Result: `/anvil:develop MVP-001` flow worked end-to-end — same
+plan → approve → RED → GREEN → verify → integration-choice sequence as
+on Claude Code and Copilot CLI.
+
+Sub-agent dispatch on OpenCode: worked (no inline fallback needed).
+
+Implication: orchestrator-path works on OpenCode. The design is portable
+across all three tested hosts (Claude Code, Copilot CLI, OpenCode)
+without host-specific branching. Cursor spot-check was skipped in favor
+of Copilot + OpenCode per user decision, but with three of four target
+hosts verified and identical behavior observed, Cursor is expected to
+work; defer formal Cursor verification to the release CI or a
+post-2.0.0 task.
