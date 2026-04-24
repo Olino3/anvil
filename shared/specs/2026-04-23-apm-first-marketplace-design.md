@@ -172,12 +172,12 @@ Extracted from today's `dev-agent.agent.md` (Phase 0) and
 `commands/develop.md`. Covers:
 
 - Worktree path: `.worktrees/{ticket-id}` relative to git root
-- Branch name: `{sprint-branch}/dev/{ticket-id}`
+- Branch name: `feature/{sprint-branch}-{ticket-id}`
 - `.worktrees/` added to `.gitignore` on first create
 - Detect "already in worktree" by branch matching `*/dev/*` + path
   containing `.worktrees/`
 - Creation command:
-  `git worktree add .worktrees/{ticket-id} -b {sprint-branch}/dev/{ticket-id}`
+  `git worktree add .worktrees/{ticket-id} -b feature/{sprint-branch}-{ticket-id}`
 - Never commit directly to the sprint branch — always through a worktree
 - Integration-choice matrix at ticket completion: squash merge / merge / PR /
   keep worktree / discard — and what each does to the worktree + dev branch
