@@ -1,0 +1,15 @@
+name: anvil-orchestrator-stable
+version: 2.0.0
+description: Anvil orchestrator — high-level human-in-the-loop automation for sprint TDD. One stage, one approval, full inner loop.
+author: Olino3
+license: MIT
+dependencies:
+  apm:
+    - /var/home/olino3/git/anvil/packages/anvil-common-stable
+    - /var/home/olino3/git/anvil/packages/anvil-core-stable
+  mcp: []
+scripts:
+  anvil:develop: anvil-develop.prompt.md
+  anvil:sprint: anvil-sprint.prompt.md
+  anvil:roadmap: anvil-roadmap.prompt.md
+  anvil:review: anvil-review.prompt.md
