@@ -70,17 +70,17 @@ jobs:
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
           generate_release_notes: true
           body: |
-            ## v2.0.0 hard cut
-
-            Anvil is now an APM-first marketplace. The v1.x `anvil` plugin
-            name no longer exists.
+            Anvil is an APM-first marketplace of three packages:
+            `anvil-common-stable` (internal, shipped transitively),
+            `anvil-core-stable` (discipline), and
+            `anvil-orchestrator-stable` (automated inner loop).
 
             ### Install
 
             **APM:**
             ```
             apm marketplace add Olino3/anvil
-            apm install anvil-orchestrator-stable@anvil
+            apm install anvil-orchestrator-stable@anvil   # or anvil-core-stable@anvil
             ```
 
             **Claude Code:**
@@ -89,8 +89,11 @@ jobs:
             claude /plugin install anvil-orchestrator-stable
             ```
 
-            **Pre-built bundles:** download the `.tar.gz` for your host from the
-            Assets section below and extract into your project.
+            **Pre-built bundles:** download the `.tar.gz` for your package
+            and host (`claude`, `copilot`, `cursor`, `opencode`) from the
+            Assets section below and extract into your project. Eight
+            bundles are attached per release — naming pattern
+            `anvil-<package-name>-<version>-<host>.tar.gz`.
 
-            See the [README](https://github.com/Olino3/anvil#upgrading-from-v1x)
-            for the v1→v2 migration table.
+            Coming from v1.x? See the
+            [migration table](https://github.com/Olino3/anvil#upgrading-from-v1x).
