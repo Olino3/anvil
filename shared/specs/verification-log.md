@@ -197,3 +197,39 @@ of Copilot + OpenCode per user decision, but with three of four target
 hosts verified and identical behavior observed, Cursor is expected to
 work; defer formal Cursor verification to the release CI or a
 post-2.0.0 task.
+
+## 2026-04-24 — Phase 7 release-workflow dry-run
+
+Scratch: `/tmp/anvil-v2-release-test/` (temporary)
+Reproduced: `cp` core package to /tmp, rewrite dep to remote shorthand
+(Olino3/anvil/packages/anvil-common-stable), `apm install`, `apm pack
+--format plugin --target claude --archive -o ./build/`.
+
+Outcomes:
+
+- `apm pack` refuses when `apm.yml` contains local-path deps
+  (`/var/home/olino3/git/anvil/packages/...`). Confirms Phase 8 Task 8.1's
+  precondition — deps must be rewritten to GitHub-shorthand form
+  (`Olino3/anvil/packages/...`) before any release build can run.
+- With deps rewritten to remote shorthand, `apm install` partially
+  succeeded: core's own content packed (7 agents, 11 commands, 7 skills
+  for claude target) but common's transitive dep failed to download
+  because `Olino3/anvil` branch `feature/v2.0.0-alpha` isn't pushed yet.
+  CI will resolve this automatically after Task 8.1 and push.
+- Produced bundle: `anvil-core-stable-2.0.0.tar.gz` (437 bytes empty
+  version; 26-file real version with all `.apm/` content compiled to
+  plugin-native layout).
+- Bundle structure matches spec:
+  * top-level `anvil-core-stable-2.0.0/` directory
+  * `plugin.json` at root (synthesized from apm.yml by APM)
+  * `agents/`, `commands/`, `skills/` subdirectories
+  * No `apm.yml`, `apm_modules/`, or `.apm/` leaked into the bundle
+- `plugin.json` content well-formed; extracts cleanly into a consumer
+  project at `.claude/plugins/anvil-core-stable-2.0.0/`.
+- Default APM output filename is `anvil-core-stable-2.0.0.tar.gz`
+  (package name + version). The release workflow's rename step appends
+  `-<host>` → `anvil-core-stable-2.0.0-claude.tar.gz`, matching the
+  locked naming convention in Risk #3.
+
+Issues: none blocking. The remote-dep resolution concern is a Phase 8
+Task 8.1 prerequisite, not a Phase 7 bug.
