@@ -20,3 +20,16 @@ first-writer rather than last-writer.
 Implication: design stands. Orchestrator packages can override core
 prompts at compiled paths by depending on core and shipping a same-named
 prompt. No spec revision needed.
+
+## 2026-04-23 — Risk #2 (OpenCode/Copilot dispatch)
+
+OpenCode single-level dispatch: works
+Copilot CLI single-level dispatch: works
+
+Tested with minimal `parent` → `leaf` agent fixtures in
+`/tmp/anvil-v2-scratch`. `parent` successfully dispatched `leaf` and
+reported "leaf ran" on both hosts.
+
+Implication: orchestrator dispatch works on all four target hosts
+(Claude Code, Copilot CLI, Cursor, OpenCode). No inline-fallback path
+needed. Spec's dispatch rules can remain as written.
