@@ -1,0 +1,9 @@
+name: anvil-common-stable
+version: 2.0.0
+description: Shared primitives for Anvil — formats, templates, TDD / commit / worktree discipline.
+author: Olino3
+license: MIT
+dependencies:
+  apm: []
+  mcp: []
+scripts: {}
