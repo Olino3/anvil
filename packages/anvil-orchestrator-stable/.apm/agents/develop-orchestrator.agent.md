@@ -37,19 +37,41 @@ orchestrators.
 
 ### Phase 2: Execute
 
-4. On approval, dispatch `@red <ticket>` (core's `red.agent`). Wait for
-   completion. Inspect the resulting `test(...)` commit. If the commit is
-   missing or the tests do not fail for the right reason, stop and report —
-   do not proceed to GREEN.
+4. On approval, **dispatch the `red` sub-agent** for the ticket. This must
+   be a real sub-agent invocation so that red has its own isolated context
+   and its agent prompt is executed faithfully.
 
-5. Dispatch `@green <ticket>` (core's `green.agent`). Wait for completion.
-   Inspect the resulting `feat(...)` or `fix(...)` commit. If the commit is
-   missing or tests still fail, stop and report.
+   - **On Claude Code**: use the Task tool with
+     `subagent_type: "red"` and a prompt such as
+     `"Run the red.agent workflow for ticket {ticket}. Read the ticket
+     file, write the complete failing test suite covering all acceptance
+     criteria, confirm tests fail for the right reason, and commit once."`
+     Do NOT load the `anvil-red` skill, do NOT inline red's workflow, do
+     NOT call Task with any other subagent_type.
+   - **On Copilot CLI / OpenCode / Cursor 2.5+**: invoke `@red {ticket}`
+     via the host's agent-dispatch mechanism (e.g. `/fleet`, `@mention`,
+     or the host's equivalent).
+   - **Fallback (only if the host genuinely cannot dispatch sub-agents)**:
+     inline the body of core's `anvil-red.prompt.md` and run it in your
+     own context. Record this in your output summary as "dispatch
+     unavailable — inlined red". Do not use the fallback when dispatch
+     is available.
+
+   Wait for the sub-agent to complete. Inspect the resulting `test(...)`
+   commit. If the commit is missing or the tests do not fail for the right
+   reason, stop and report — do not proceed to GREEN.
+
+5. **Dispatch the `green` sub-agent** for the ticket, using the same
+   mechanism as Phase 2 step 4 but with `subagent_type: "green"` on Claude
+   Code or `@green {ticket}` on other hosts. Wait for completion. Inspect
+   the resulting `feat(...)` or `fix(...)` commit. If the commit is missing
+   or tests still fail, stop and report.
 
 6. **If refactor is warranted**, invoke core's `anvil-refactor.prompt.md`
-   inline (no dedicated agent). Run until completion of that prompt's Step
-   3 (the refactor commit). Stop there — do NOT proceed to the refactor
-   prompt's own integration-choice step.
+   inline in your own context (there is no dedicated refactor sub-agent).
+   Run until completion of that prompt's Step 3 (the refactor commit).
+   Stop there — do NOT proceed to the refactor prompt's own
+   integration-choice step.
 
 ### Phase 3: Verify
 
@@ -71,12 +93,22 @@ orchestrators.
 
 ## Constraints
 
+- **Real sub-agent dispatch required.** On Claude Code, use the Task tool
+  with `subagent_type: "red"` and `subagent_type: "green"`. Do NOT invoke
+  the `anvil-red` or `anvil-green` skills, prompts, or any other wrapper
+  in place of the sub-agents — the sub-agents have their own context
+  windows and their own agent prompts, both of which are needed for
+  correct behavior. Skill loading in place of sub-agent dispatch is a bug,
+  not a valid fallback.
 - **Single-level dispatch only.** Never dispatch another orchestrator.
-- **Fallback on hosts that cannot dispatch.** If `@red` or `@green` cannot
-  be dispatched (host limitation), inline the body of core's
-  `anvil-red.prompt.md` / `anvil-green.prompt.md` into your own context
-  and execute it there. Record this in your output summary as
-  "dispatch unavailable — inlined {agent}".
+  `red` and `green` do not dispatch further.
+- **Inline fallback is host-limited.** Only inline red/green's content if
+  the host genuinely lacks sub-agent dispatch (e.g. a raw LLM CLI with no
+  Task tool and no `@mention`). Phase 0 verification (see
+  `shared/specs/verification-log.md` risk #2) confirmed dispatch works on
+  Claude Code, Copilot CLI, Cursor, and OpenCode, so the inline fallback
+  should never fire on those hosts. If it does, that is a dispatch bug to
+  fix, not a design choice.
 - **Do not expand ticket scope.** Create SPIKEs per the `ticket-template`
   skill for out-of-scope discoveries.
 

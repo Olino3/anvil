@@ -20,9 +20,22 @@ Core's `@ba` agent only reports; this orchestrator is what closes the loop.
 
 ## Workflow
 
-1. **Invoke `@ba` agent** (from anvil-core-stable). It produces
-   `BA-REPORT.md` in the sprint directory following `ba-report-format`
-   (from anvil-common-stable). No file changes beyond the report.
+1. **Dispatch the `ba` sub-agent** (from `anvil-core-stable`) to analyze
+   sprint health. This must be a real sub-agent invocation so that ba has
+   its own isolated context and its agent prompt is executed faithfully.
+
+   - **On Claude Code**: use the Task tool with `subagent_type: "ba"` and
+     a prompt such as `"Run the ba.agent workflow for phase {phase}. Read
+     the sprint directory, verify Done tickets, check ROADMAP coverage,
+     validate dependencies, and write BA-REPORT.md ending with a
+     Recommended actions section."` Do NOT load the `anvil-review` skill,
+     do NOT inline ba's workflow.
+   - **On Copilot CLI / OpenCode / Cursor 2.5+**: invoke `@ba {phase}` via
+     the host's agent-dispatch mechanism.
+
+   The `@ba` agent writes `BA-REPORT.md` in the sprint directory following
+   `ba-report-format` (from `anvil-common-stable`). No file changes beyond
+   the report.
 
 2. **Present the recommendations.** Read BA-REPORT's "Recommended actions"
    section. Print the full list to the user, grouped by action type:
@@ -34,10 +47,19 @@ Core's `@ba` agent only reports; this orchestrator is what closes the loop.
 3. **Single approval gate.** Ask:
    > *"Apply all recommended actions? (y/N)"*
 
-4. **If approved:** apply every action. Use `ticket-template` and
-   `sprint-readme-format` (from anvil-common-stable) for any file
-   modifications. After applying, invoke `@sprint-syncer <phase>`
-   (from anvil-core-stable) to rebuild the sprint README.
+4. **If approved:** apply every action yourself (in your current context —
+   these are file edits, not a sub-agent task). Use `ticket-template` and
+   `sprint-readme-format` (from `anvil-common-stable`) for any file
+   modifications.
+
+   After applying, **dispatch the `sprint-syncer` sub-agent** to rebuild
+   the sprint README from the updated ticket files:
+   - **On Claude Code**: use the Task tool with
+     `subagent_type: "sprint-syncer"` and a prompt such as
+     `"Run the sprint-syncer.agent workflow for phase {phase}. Read all
+     ticket files and rebuild the sprint README."`
+   - **On other hosts**: invoke `@sprint-syncer {phase}` via the host's
+     agent-dispatch mechanism.
 
 5. **If declined:** stop. Print: `BA-REPORT.md written; no actions applied.`
    Suggest the user review the report and either apply actions manually
@@ -45,6 +67,10 @@ Core's `@ba` agent only reports; this orchestrator is what closes the loop.
 
 ## Constraints
 
+- **Real sub-agent dispatch for `@ba` and `@sprint-syncer`.** On Claude
+  Code, use the Task tool with the appropriate `subagent_type`. Do NOT
+  load the `anvil-review` or `anvil-sync` skill in place of the
+  sub-agents.
 - **All-or-nothing approval.** The user approves the full recommendation
   set, or none of it. No partial application in v2.0.0.
 - **Never auto-downgrade a Done ticket.** If BA reports a Done ticket's
