@@ -61,29 +61,33 @@ The sprint directory (`docs/anvil/sprints/...`), ROADMAP.md, and config
 ## Quick start
 
 ```bash
-/anvil:init                   # detect stack, write config
-/anvil:roadmap                # create ROADMAP.md (pd-agent conversation)
-/anvil:sprint MVP             # break phase into tickets (pm-agent)
-/anvil:develop MVP-001        # implement ticket (behavior depends on installed package)
-/anvil:review MVP             # sprint health + verification
+/anvil-init                   # detect stack, write config
+/anvil-roadmap                # create ROADMAP.md (pd-agent conversation)
+/anvil-sprint MVP             # break phase into tickets (pm-agent)
+/anvil-develop MVP-001        # implement ticket (behavior depends on installed package)
+/anvil-review MVP             # sprint health + verification
 ```
 
 ## Commands
 
 | Command | anvil-core-stable | anvil-orchestrator-stable |
 |---|---|---|
-| `/anvil:init` | interactive setup | same |
-| `/anvil:roadmap` | pd conversation | pd conversation + optional sprint handoff |
-| `/anvil:sprint <phase>` | pm generates sprint | pm + optional one-ticket handoff |
-| `/anvil:develop <ticket>` | locate + worktree + plan, then stop | full inner loop: plan → RED → GREEN → REFACTOR → integration |
-| `/anvil:red <ticket>` | whole-ticket failing suite | same (from core) |
-| `/anvil:green <ticket>` | whole-ticket minimum code | same (from core) |
-| `/anvil:refactor <ticket>` | self-contained refactor + integration choice | same (from core) |
-| `/anvil:review <phase>` | ba reports; no auto-apply | ba + auto-apply cleanup with approval |
-| `/anvil:sync <phase>` | rebuild sprint README | same (from core) |
-| `/anvil:status [phase]` | read-only summary | same (from core) |
+| `/anvil-init` | interactive setup | same |
+| `/anvil-roadmap` | pd conversation | pd conversation + optional sprint handoff |
+| `/anvil-sprint <phase>` | pm generates sprint | pm + optional one-ticket handoff |
+| `/anvil-develop <ticket>` | locate + worktree + plan, then stop | full inner loop: plan → RED → GREEN → REFACTOR → integration |
+| `/anvil-red <ticket>` | whole-ticket failing suite | same (from core) |
+| `/anvil-green <ticket>` | whole-ticket minimum code | same (from core) |
+| `/anvil-refactor <ticket>` | self-contained refactor + integration choice | same (from core) |
+| `/anvil-review <phase>` | ba reports; no auto-apply | ba + auto-apply cleanup with approval |
+| `/anvil-sync <phase>` | rebuild sprint README | same (from core) |
+| `/anvil-status [phase]` | read-only summary | same (from core) |
 
-Every command is also available as `apm run anvil:<stage> --param ...`.
+Slash commands compile from the `anvil:<stage>` script keys in each
+package's `apm.yml`. Hosts (Claude Code, Copilot CLI, Cursor, OpenCode)
+surface them with a dash separator — `/anvil-<stage>` — because their
+slash-command grammar doesn't accept colons. The same scripts are also
+runnable via APM directly: `apm run anvil:<stage> --param ...`.
 
 ## `.gitignore` guidance
 
@@ -114,7 +118,8 @@ flattened).
 | `@sprint-syncer` | core | Rebuild sprint README |
 | `@red` | core | Whole-ticket failing test suite |
 | `@green` | core | Whole-ticket minimum implementation |
-| `@dev-discipline` | core | Plan and approve (no dispatch) |
+| `@dev-discipline` | core | Plan and stop (waits for approval; never continues to RED/GREEN) |
+| `@dev-plan` | orchestrator | Plan and return (no flow control; main session owns the approval gate and continues to RED on approval) |
 
 ## Workflow playbook
 
