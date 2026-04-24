@@ -90,3 +90,69 @@ command is dash-separated. Consider an addendum to README when host
 surfacing is next updated.
 
 Issues: none blocking.
+
+## 2026-04-24 — Phase 6 orchestrator-path smoke test
+
+Scratch project: `/tmp/anvil-v2-scratch-orch`
+Host: Claude Code
+Packages: anvil-orchestrator-stable (+ anvil-core-stable + anvil-common-stable)
+
+Result: `/anvil:develop MVP-001` ran end-to-end — plan (`@dev-plan`) →
+user approves → RED (`@red`) → GREEN (`@green`) → inline REFACTOR skip
+→ inline verification → inline ticket/README update → integration-choice
+matrix. All three sub-agents dispatched flat via the Task tool, each
+with its own isolated context.
+
+Sub-agent dispatch: worked for all three (`dev-plan`, `red`, `green`).
+Commits landed on the correct worktree branch
+(`feature/phase-mvp-MVP-001`).
+
+### Design iterations required to reach this result
+
+The orchestrator path required three significant redesigns during
+Phase 6 validation:
+
+1. **Skill override (commit 0e375ea).** Core's `anvil-develop` skill's
+   explicit procedure ("invoke dev-discipline, stop after approval")
+   outweighed the orchestrator's prompt override. Added parallel
+   `anvil-develop` / `anvil-sprint` / `anvil-roadmap` / `anvil-review`
+   SKILL.md files to orchestrator at the same compiled paths so the
+   skill-layer override applies too.
+
+2. **Flattened orchestration (commit 7506c9e, BREAKING CHANGE).** Claude
+   Code does not support nested sub-agent dispatch: a sub-agent cannot
+   itself dispatch further sub-agents via the Task tool. The prior
+   design — `@develop-orchestrator` as a sub-agent trying to dispatch
+   `@red` and `@green` — silently fell back to inlining the sub-agent
+   work, losing context isolation and fidelity to the leaf agents.
+   Deleted all four `*-orchestrator.agent.md` files. Rewrote the four
+   prompt+skill overrides so the prompt body IS the workflow, executed
+   by the main session, dispatching leaf sub-agents flat one at a time.
+
+3. **`@dev-plan` vs `@dev-discipline` (commit 8977c4b).** After
+   flattening, dispatching `@dev-discipline` for the plan phase caused
+   the main session to stop after plan approval — dev-discipline's
+   agent prompt explicitly says "stop and wait for approval; do nothing
+   else," which was correct for core's plan-and-stop flow but broke
+   orchestrator's continuation to RED/GREEN. Introduced `@dev-plan` in
+   anvil-orchestrator-stable: a plan-and-return leaf agent that
+   produces a plan and exits without taking flow control. Main session
+   owns the approval gate and continues to RED on approval, or
+   re-dispatches `@dev-plan` with redirection on "needs changes."
+
+### Post-test follow-up notes (non-blocking)
+
+- **CWD precision.** The main session executed some git commands
+  without `-C <worktree>` and relied on cwd from an earlier command.
+  Worked by luck. Worktree-discipline instruction should be tightened
+  to require explicit `-C` or `cd` before any git operation outside the
+  worktree.
+- **Worktree-absolute paths for Read/Edit.** Main session hit "File
+  must be read first" errors when editing ticket files with
+  main-repo-relative paths. Worktree-discipline should note that after
+  cwd into the worktree, Read/Edit paths must be worktree-absolute.
+
+Both of these are instruction-precision improvements, not design bugs.
+Candidates for a post-2.0.0 follow-up ticket.
+
+Issues: none blocking.
