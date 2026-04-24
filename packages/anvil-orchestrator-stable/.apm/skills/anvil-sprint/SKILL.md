@@ -1,47 +1,64 @@
 ---
 name: anvil-sprint
-description: Generate a sprint via sprint-orchestrator, then offer a one-ticket handoff to develop-orchestrator for the first unblocked ticket. No multi-ticket loop.
+description: Generate a sprint via flat @pm dispatch, then optionally run the flattened develop workflow for the first unblocked ticket. Main session drives; no nested sub-agent dispatch.
 user-invocable: true
 ---
 
-# Anvil Sprint — Orchestrated
+# Anvil Sprint — Orchestrated (Flattened)
 
 ## Invocation
 
 - Slash command: `/anvil:sprint <phase>`
 - APM runtime: `apm run anvil:sprint --param phase=<phase>`
-- Agent mention: `@sprint-orchestrator <phase>`
 
-Generate a sprint from a ROADMAP phase, then optionally hand off to
-`@develop-orchestrator` for the first unblocked ticket. This skill overrides
-the core `anvil-sprint` direct-`@pm` invocation; with
-`anvil-orchestrator-stable` installed, the one-ticket handoff gate is added
-at the end.
+Generate a sprint from a ROADMAP phase, then optionally inline the
+flattened develop workflow for the first unblocked ticket. The **main
+session** drives the flow; there is no orchestrator sub-agent. Claude
+Code does not support nested sub-agent dispatch, so this flattened design
+is required.
 
 ## Arguments
 
-- `phase` (required) — the target phase by name, number, or prefix (e.g., `MVP`, `2`, `Phase 2`, `Auth System`)
+- `phase` (required) — the target phase by name, number, or prefix
+  (e.g., `MVP`, `2`, `Phase 2`, `Auth System`)
 
 ## Procedure
 
-### 1. Invoke sprint-orchestrator
+The main session executes the workflow documented in
+`anvil-sprint.prompt.md` (orchestrator override, from this package).
+Summary:
 
-Invoke the `@sprint-orchestrator` agent for the phase. The agent follows its
-own documented workflow (see `sprint-orchestrator.agent.md`):
+1. **Prep (inline):** verify config, find target phase in `ROADMAP.md`,
+   check for existing sprint, create sprint feature branch.
+2. **Generate sprint (flat sub-agent):** Task tool with
+   `subagent_type: "pm"` creates the sprint directory, ticket files, and
+   sprint README.
+3. **Commit sprint artifacts (inline).**
+4. **Report (inline):** main session prints sprint path, ticket counts,
+   first unblocked ticket.
+5. **Handoff offer (inline):** ask `"Develop <first-unblocked-ticket>
+   now?"`
+6. **If yes:** inline the `anvil-develop.prompt.md` workflow (orchestrator
+   version) in the current main session, with `ticket =
+   <first-unblocked-ticket>`. All sub-agent dispatches from that inlined
+   workflow — `dev-discipline`, `red`, `green` — originate from this same
+   main session as flat dispatches.
+7. **If no:** stop and print the next-step command.
 
-1. Invoke the `@pm` agent (from `anvil-core-stable`) to generate the sprint — sprint directory, ticket files, sprint README, and the sprint feature branch
-2. Report the sprint directory path, ticket counts, and which tickets are immediately unblocked
-3. Ask the user: *"Develop `<first-unblocked-ticket-id>` now?"*
-4. If yes: inline-invoke the `@develop-orchestrator` workflow for that ticket
-5. If no: stop and print `/anvil:develop <first-unblocked-ticket-id>` as the recommended next command
+## Constraints
 
-### 2. Constraints
+- **No orchestrator sub-agent.** The orchestration lives in the main
+  session. This package formerly shipped a `sprint-orchestrator.agent.md`;
+  that was removed because of Claude Code's no-nested-dispatch limit.
+- **Flat sub-agent dispatches only.** `pm` dispatch in step 2, and any
+  dispatches from the inlined develop workflow, all originate from this
+  main session.
+- **One ticket only.** No multi-ticket loop. If the user asks for
+  auto-develop-every-ticket, report that the feature is reserved for
+  `anvil-autonomous-stable` (future package).
+- **Handoff is inline workflow execution**, not a sub-agent call.
 
-- **Do not invoke `@pm` directly from this skill.** `@sprint-orchestrator` owns the sprint generation + handoff flow.
-- **One-ticket handoff only.** No multi-ticket loop. If the user asks for auto-develop-every-ticket, report that the feature is reserved for `anvil-autonomous-stable` (future package).
-- **Handoff is inline.** `@develop-orchestrator` is invoked in the current context, not as a nested sub-agent dispatch.
-
-### 3. On completion
+## On completion
 
 Report:
 - Sprint directory path and ticket count by type

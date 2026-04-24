@@ -1,48 +1,64 @@
 ---
 name: anvil-roadmap
-description: Run roadmap-orchestrator to create or update ROADMAP.md, then optionally hand off to sprint-orchestrator for the current phase.
+description: Create or update ROADMAP.md via flat @pd dispatch, then optionally inline the sprint workflow for the current phase. Main session drives; no nested sub-agent dispatch.
 user-invocable: true
 ---
 
-# Anvil Roadmap — Orchestrated
+# Anvil Roadmap — Orchestrated (Flattened)
 
 ## Invocation
 
 - Slash command: `/anvil:roadmap`
 - APM runtime: `apm run anvil:roadmap`
-- Agent mention: `@roadmap-orchestrator`
 
-Create or update `ROADMAP.md`, then optionally hand off to
-`@sprint-orchestrator` for the current phase. This skill overrides the core
-`anvil-roadmap` direct-`@pd` invocation; with `anvil-orchestrator-stable`
-installed, the sprint-handoff gate is added at the end.
+Create or update `ROADMAP.md`, then optionally inline the flattened sprint
+workflow for the current phase. The **main session** drives the flow;
+there is no orchestrator sub-agent. Claude Code does not support nested
+sub-agent dispatch, so this flattened design is required.
 
 ## Arguments
 
-- None required. `@roadmap-orchestrator` conducts the conversation.
+- None required. The `@pd` sub-agent conducts the conversation.
 
 ## Procedure
 
-### 1. Invoke roadmap-orchestrator
+The main session executes the workflow documented in
+`anvil-roadmap.prompt.md` (orchestrator override, from this package).
+Summary:
 
-Invoke the `@roadmap-orchestrator` agent. The agent follows its own
-documented workflow (see `roadmap-orchestrator.agent.md`):
+1. **Verify config (inline):** read `docs/anvil/config.yml`; if missing,
+   prompt user to run `/anvil:init` first.
+2. **Roadmap conversation (flat sub-agent):** Task tool with
+   `subagent_type: "pd"` conducts the conversation and writes / updates
+   `ROADMAP.md`.
+3. **Commit roadmap (inline).**
+4. **Identify current phase (inline):** the first phase not marked
+   `Complete`.
+5. **Handoff offer (inline):** ask `"Kick off a sprint for <current-phase>
+   now?"`
+6. **If yes:** inline the `anvil-sprint.prompt.md` workflow (orchestrator
+   version) in the current main session, with `phase = <current-phase>`.
+   Transitively, that workflow may inline the develop workflow too if the
+   user accepts sprint's one-ticket handoff — all sub-agent dispatches
+   originate from this same main session as flat dispatches.
+7. **If no:** stop and print the next-step command.
 
-1. Invoke the `@pd` agent (from `anvil-core-stable`) to produce or update `ROADMAP.md` using `roadmap-format` (from `anvil-common-stable`)
-2. Identify the "current" phase (first phase not marked Complete) and its prefix
-3. Ask the user: *"Kick off a sprint for phase `<current-phase>` now?"*
-4. If yes: inline-invoke the `@sprint-orchestrator` workflow for that phase
-5. If no: stop and print `/anvil:sprint <current-phase>` as the recommended next command
+## Constraints
 
-### 2. Constraints
+- **No orchestrator sub-agent.** The orchestration lives in the main
+  session. This package formerly shipped a `roadmap-orchestrator.agent.md`;
+  that was removed because of Claude Code's no-nested-dispatch limit.
+- **Flat sub-agent dispatches only.** `pd` dispatch in step 2, and any
+  dispatches from inlined sprint / develop workflows, all originate from
+  this main session.
+- **Single handoff only.** One roadmap conversation, one optional sprint
+  kickoff. Do not chain further initiations.
+- **Handoff is inline workflow execution**, not a sub-agent call.
 
-- **Do not invoke `@pd` directly from this skill.** `@roadmap-orchestrator` owns the roadmap + handoff flow.
-- **Single handoff only.** One roadmap conversation, one optional sprint kickoff. Do not chain further.
-- **Handoff is inline.** `@sprint-orchestrator` is invoked in the current context, not as a nested sub-agent dispatch.
-
-### 3. On completion
+## On completion
 
 Report:
-- What changed in `ROADMAP.md` (new phases, status updates, scope adjustments)
+- What changed in `ROADMAP.md` (new phases, status updates, scope
+  adjustments)
 - Whether the sprint handoff ran (and its outcome if so)
 - Next-step guidance

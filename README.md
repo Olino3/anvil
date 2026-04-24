@@ -100,6 +100,12 @@ git-indexed files.
 
 ## Agents
 
+All Anvil agents are leaf sub-agents dispatched from the main session.
+There are no orchestrator agents — with `anvil-orchestrator-stable`
+installed, the orchestration runs in the main session itself (Claude
+Code does not support nested sub-agent dispatch, so the orchestration is
+flattened).
+
 | Agent | Source package | Role |
 |---|---|---|
 | `@pd` | core | Product Director — roadmap |
@@ -109,10 +115,6 @@ git-indexed files.
 | `@red` | core | Whole-ticket failing test suite |
 | `@green` | core | Whole-ticket minimum implementation |
 | `@dev-discipline` | core | Plan and approve (no dispatch) |
-| `@develop-orchestrator` | orchestrator | One-ticket automation |
-| `@sprint-orchestrator` | orchestrator | Sprint generate + optional handoff |
-| `@roadmap-orchestrator` | orchestrator | Roadmap + optional sprint handoff |
-| `@review-orchestrator` | orchestrator | Review + auto-apply cleanup |
 
 ## Workflow playbook
 

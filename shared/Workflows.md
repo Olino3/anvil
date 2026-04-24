@@ -24,8 +24,8 @@ Commands are the same names across packages, but **[core]** stops at human-in-th
 |---|---|---|
 | `/anvil:init` | Detect stack, write project config | same |
 | `/anvil:roadmap` | Invoke `@pd` for roadmap conversation | `@pd` + optional sprint handoff |
-| `/anvil:sprint <phase>` | Invoke `@pm` to generate sprint | `@pm` + optional one-ticket handoff to `@develop-orchestrator` |
-| `/anvil:develop <ticket>` | Locate + worktree + plan, then stop | Full loop: plan → `@red` → `@green` → optional REFACTOR → verification → integration choice |
+| `/anvil:sprint <phase>` | Invoke `@pm` to generate sprint | `@pm` + optional one-ticket handoff (inlined develop workflow) |
+| `/anvil:develop <ticket>` | Locate + worktree + plan, then stop | Full loop in main session: plan (`@dev-discipline`) → `@red` → `@green` → optional REFACTOR → verification → integration choice |
 | `/anvil:red <ticket>` | `@red` writes whole-ticket failing suite | same (from core) |
 | `/anvil:green <ticket>` | `@green` writes minimum production code | same (from core) |
 | `/anvil:refactor <ticket>` | Self-contained refactor + integration choice | same (from core) |
@@ -88,7 +88,7 @@ The canonical greenfield playbook, from empty repo to a completed phase and on t
 
 **Recipe:**
 
-1. `/anvil:sprint <phase>` — `@pm` explores the codebase and generates 4–8 main tickets plus any SPIKE tickets, writes the sprint `README.md`, and creates the feature branch (e.g. `feature/mvp`). **[orchestrator]** additionally offers a one-ticket handoff to `@develop-orchestrator` for the first unblocked ticket.
+1. `/anvil:sprint <phase>` — `@pm` explores the codebase and generates 4–8 main tickets plus any SPIKE tickets, writes the sprint `README.md`, and creates the feature branch (e.g. `feature/mvp`). **[orchestrator]** additionally offers a one-ticket handoff — on yes, the develop workflow is inlined into the current main session for the first unblocked ticket.
 
    Example: `/anvil:sprint MVP` or `/anvil:sprint 2`.
 
@@ -103,7 +103,7 @@ The canonical greenfield playbook, from empty repo to a completed phase and on t
       > "Adjust — step 3 duplicates work already done in MVP-002. Drop it and proceed with the rest."
 
    c. Run RED → GREEN (→ REFACTOR):
-      - **[orchestrator]** On approval, `@develop-orchestrator` dispatches `@red` and `@green`, optionally runs `/anvil:refactor`, verifies, and presents the integration choice automatically.
+      - **[orchestrator]** On approval, the main session dispatches `@red` and `@green` as flat sub-agents (one at a time), optionally does REFACTOR inline, runs verification, and presents the integration choice automatically. No orchestrator sub-agent — Claude Code does not support nested sub-agent dispatch, so the orchestration runs in the main session.
       - **[core]** The user runs, in order: `/anvil:red <TICKET-ID>`, `/anvil:green <TICKET-ID>`, then optionally `/anvil:refactor <TICKET-ID>`. The refactor prompt (or green, if no refactor) presents the integration choice at its end.
 
       Each cycle produces commits: `test(scope): ...`, `feat(scope): ...` (or `fix(...)`), optionally `refactor(...)`.
@@ -225,7 +225,7 @@ Tactical workflows for the moments inside a sprint that don't fit the core loop.
 
 ### 3.1.2 — SPIKE discovery during ticket work
 
-**Symptom:** mid-implementation, `@green` or `@develop-orchestrator` hits work that's needed but outside the current ticket's scope (e.g. a missing config loader, a refactor to an unrelated module).
+**Symptom:** mid-implementation, `@green` (or the orchestrator main session) hits work that's needed but outside the current ticket's scope (e.g. a missing config loader, a refactor to an unrelated module).
 
 **Recipe:** this is automatic. The agent will:
 
@@ -241,7 +241,7 @@ You can also prompt this explicitly when approving the plan:
 
 ### 3.1.3 — Integration choice after a ticket finishes
 
-After the ticket is marked Done (by `@develop-orchestrator` under **[orchestrator]**, or by `/anvil:refactor` / `/anvil:green` under **[core]**), the worktree-discipline integration-choice matrix is presented. Five options:
+After the ticket is marked Done (by the main-session orchestrator workflow under **[orchestrator]**, or by `/anvil:refactor` / `/anvil:green` under **[core]**), the worktree-discipline integration-choice matrix is presented. Five options:
 
 | Option | When to use |
 |---|---|
@@ -303,7 +303,7 @@ Run this before `/anvil:develop` to confirm the right ticket to pick up next.
 
 **Recipe:**
 
-- **[orchestrator]** — `/anvil:review <phase>` offers a single approval to apply all recommended actions. On approval, `@review-orchestrator` splits the ticket (next available sequential numbers in the sprint's prefix), preserves context and notes across children, rewires `Depends on` / `Blocks`, and then invokes `@sprint-syncer` to rebuild the sprint `README.md`.
+- **[orchestrator]** — `/anvil:review <phase>` offers a single approval to apply all recommended actions. On approval, the main session splits the ticket inline (next available sequential numbers in the sprint's prefix), preserves context and notes across children, rewires `Depends on` / `Blocks`, and then dispatches `@sprint-syncer` as a flat sub-agent to rebuild the sprint `README.md`.
 - **[core]** — `/anvil:review <phase>` writes the BA-REPORT but does not apply changes. Either perform the splits manually (copy the ticket, renumber, re-point dependencies, archive the original), or install `anvil-orchestrator-stable` and re-run `/anvil:review` to apply automatically. Finish with `/anvil:sync <phase>` to refresh the README.
 
 Read `BA-REPORT.md` for the split record, then continue with `/anvil:develop` on one of the new smaller tickets.
@@ -335,7 +335,7 @@ See [Workflow 1.3](#13--completing-a-sprint-advancing-the-roadmap). Named separa
 
 **When:** a ticket is Open, has no blockers, and is clearly superseded by other completed work or cut from scope.
 
-**Automatic path [orchestrator]:** `/anvil:review <phase>` — `@review-orchestrator` applies the BA-REPORT's archival recommendations on approval (renames stale tickets to `ARCHIVED-{PREFIX}-{NNN}-{slug}.md` and rebuilds the `README.md` via `@sprint-syncer`).
+**Automatic path [orchestrator]:** `/anvil:review <phase>` — the main session applies the BA-REPORT's archival recommendations on approval (renames stale tickets to `ARCHIVED-{PREFIX}-{NNN}-{slug}.md`) and then dispatches `@sprint-syncer` as a flat sub-agent to rebuild the `README.md`.
 
 **Automatic path [core]:** `/anvil:review <phase>` records the recommendation in `BA-REPORT.md` but does not apply it. Proceed with the manual path below, or install `anvil-orchestrator-stable`.
 
