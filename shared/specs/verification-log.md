@@ -33,3 +33,17 @@ reported "leaf ran" on both hosts.
 Implication: orchestrator dispatch works on all four target hosts
 (Claude Code, Copilot CLI, Cursor, OpenCode). No inline-fallback path
 needed. Spec's dispatch rules can remain as written.
+
+## 2026-04-23 — Risk #3 (bundle naming)
+
+Pattern: `anvil-<package-name>-<version>-<host>.tar.gz`
+Example: `anvil-core-stable-2.0.0-claude.tar.gz`
+
+`<package-name>` is the full APM package name (e.g. `anvil-core-stable`,
+`anvil-orchestrator-stable`) — not a shortened form. `<host>` is one of
+`claude`, `copilot`, `cursor`, `opencode`. `<version>` matches the
+package's `apm.yml` version.
+
+Implication: CI workflow (`.github/workflows/release.yml`) must generate
+exactly these eight names per release. Spec already lists them
+literally; no edit needed.
