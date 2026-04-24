@@ -47,3 +47,46 @@ package's `apm.yml` version.
 Implication: CI workflow (`.github/workflows/release.yml`) must generate
 exactly these eight names per release. Spec already lists them
 literally; no edit needed.
+
+## 2026-04-23 — Phase 6.1 fresh consumer install smoke test
+
+Scratch project: `/tmp/anvil-v2-scratch`
+Packages: `anvil-orchestrator-stable` + transitive `anvil-core-stable` +
+`anvil-common-stable`
+Install command: `apm install <local-path> --target all`
+(local-path substituted for `apm marketplace add` because APM 0.9.2's
+`marketplace add` only accepts remote `OWNER/REPO`, not local paths —
+this is a pre-release limitation; post-push the plan's original form
+works)
+
+Result: all critical artifacts present across all four hosts
+(Claude, Copilot, Cursor, OpenCode). Override content confirmed:
+`anvil-develop` contains `develop-orchestrator`; `anvil-red` remains
+core's `@red` content.
+
+Known APM limitation (unchanged from Phase 2/3 validation): `apm list`
+does not surface dependency-package scripts in the consumer's view.
+End users invoke via slash commands or `@agent` mentions — both work.
+
+## 2026-04-23 — Phase 6 core-path smoke test
+
+Scratch project: `/tmp/anvil-v2-scratch`
+Host: Claude Code
+Packages: anvil-core-stable (with anvil-common-stable transitively)
+
+Result: init → roadmap → sprint → develop → red → green → refactor all OK.
+
+`/anvil:develop` stopped after plan approval (did not proceed to RED/GREEN).
+`/anvil:red`, `/anvil:green`, `/anvil:refactor` each produced a correct
+single commit and the refactor prompt presented the integration-choice
+matrix at the end.
+
+Naming note: Claude Code surfaces these slash commands as `/anvil-<stage>`
+(dash-separated, flat) rather than `/anvil:<stage>` (colon-namespaced) —
+this is APM's default compile format for Claude. Functionally equivalent;
+the README / Workflows doc talks about `/anvil:<stage>` for stylistic
+consistency with the script names in `apm.yml`, but the actual user-facing
+command is dash-separated. Consider an addendum to README when host
+surfacing is next updated.
+
+Issues: none blocking.
