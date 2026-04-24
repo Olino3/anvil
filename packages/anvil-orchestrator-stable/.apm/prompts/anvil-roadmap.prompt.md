@@ -46,7 +46,7 @@ workflow for the current phase, or stop. No nested sub-agent dispatch.
    `anvil-sprint.prompt.md` (orchestrator version, from this package) in
    your current context, with `phase = <current-phase>`. Any sub-agent
    dispatches in that workflow — `pm`, and transitively the develop
-   workflow's `dev-discipline` / `red` / `green` if the user also accepts
+   workflow's `dev-plan` / `red` / `green` if the user also accepts
    sprint's one-ticket handoff — all happen from this same main session
    as flat dispatches.
 

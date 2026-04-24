@@ -54,7 +54,7 @@ specifically: if a worktree already exists for the ticket, it is reused.
 Each workflow runs in the **main session** and dispatches leaf sub-agents
 flat, one at a time:
 
-- `/anvil:develop` — dispatches `@dev-discipline`, `@red`, then `@green`
+- `/anvil:develop` — dispatches `@dev-plan`, `@red`, then `@green`
 - `/anvil:sprint` — dispatches `@pm`
 - `/anvil:roadmap` — dispatches `@pd`
 - `/anvil:review` — dispatches `@ba`, then (on approval) `@sprint-syncer`

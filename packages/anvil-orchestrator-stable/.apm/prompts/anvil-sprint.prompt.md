@@ -54,7 +54,7 @@ nested sub-agent dispatch.
 9. **If yes:** inline the full workflow from
    `anvil-develop.prompt.md` (orchestrator version, from this package) in
    your current context, with `ticket = <first-unblocked-ticket-id>`. All
-   sub-agent dispatches in that workflow — `dev-discipline`, `red`,
+   sub-agent dispatches in that workflow — `dev-plan`, `red`,
    `green` — happen from this same main session as flat dispatches.
 
    Stop after the develop workflow completes (the integration-choice

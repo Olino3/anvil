@@ -7,10 +7,15 @@ input:
 # Anvil Develop — Orchestrated (Flattened)
 
 You are the main session. You drive the full one-ticket TDD inner loop for
-ticket `${input:ticket}`. Sub-agents (`dev-discipline`, `red`, `green`,
-`sprint-syncer`) are dispatched **flat** — one at a time, from this main
-session only. Never chain sub-agent dispatches through another sub-agent —
-Claude Code does not support nested dispatch.
+ticket `${input:ticket}`. Sub-agents (`dev-plan`, `red`, `green`) are
+dispatched **flat** — one at a time, from this main session only. Never
+chain sub-agent dispatches through another sub-agent — Claude Code does
+not support nested dispatch.
+
+The main session owns the approval gate. Leaf sub-agents produce
+artifacts and return; they do not stop the workflow on their own. It is
+the main session's responsibility to continue from sub-agent to sub-agent
+until the workflow reaches the integration choice.
 
 ## Procedure
 
@@ -31,17 +36,36 @@ Claude Code does not support nested dispatch.
 
 ### Phase 1 — Plan (flat sub-agent dispatch)
 
-6. **Dispatch the `dev-discipline` sub-agent.** Use the Task tool with
-   `subagent_type: "dev-discipline"` and a prompt such as
-   `"Run the dev-discipline.agent workflow for ticket ${input:ticket}.
-   Read the ticket, verify dependencies are Done, produce a RED/GREEN/
-   REFACTOR plan surfacing any ambiguities, and stop after presenting
-   the plan."` This is a flat dispatch from the main session.
+6. **Dispatch the `dev-plan` sub-agent.** Use the Task tool with
+   `subagent_type: "dev-plan"` and a prompt such as
+   `"Produce a RED/GREEN/REFACTOR plan for ticket ${input:ticket}. Read
+   the ticket file, verify dependencies are Done, and return the plan as
+   structured markdown. Do not ask the user anything and do not suggest
+   next commands — the orchestrator main session owns the approval gate
+   and flow control."` This is a flat dispatch from the main session.
 
-7. **Relay the plan to the user for approval.** Present the sub-agent's
-   plan output. Ask: *"Proceed with this plan?"* Wait for the user's
-   response. If the user redirects, either re-dispatch `dev-discipline`
-   with the clarification or stop.
+   **Important:** Do NOT dispatch `dev-discipline` — that is core's
+   plan-and-stop agent and it closes the interaction. `dev-plan` is a
+   plan-return leaf agent that hands the plan back without taking flow
+   control.
+
+7. **Present the plan and own the approval gate.** You (the main
+   session) take the plan returned by `dev-plan` and present it to the
+   user. Ask: *"Proceed with this plan?"*
+
+   Handle the user's response:
+   - **"Proceed" / "yes" / approval**: continue to Phase 2 (RED).
+   - **"Needs changes: {guidance}"**: re-dispatch `dev-plan` with the
+     user's redirection as additional context in the prompt (e.g.
+     `"Produce a revised plan for ticket ${input:ticket}. Previous plan
+     returned {summary}; user requested these changes: {guidance}. Re-plan
+     accordingly."`). Present the revised plan and re-ask for approval.
+     Loop until the user approves or stops.
+   - **"Stop" / "cancel"**: stop the workflow. Do not proceed.
+
+   Do NOT stop the workflow just because `dev-plan` returned. `dev-plan`
+   is a leaf agent that produces a plan and exits; the main session must
+   explicitly continue to Phase 2 on approval.
 
 ### Phase 2 — RED (flat sub-agent dispatch)
 
@@ -106,8 +130,16 @@ Claude Code does not support nested dispatch.
 ## Constraints
 
 - **No nested sub-agent dispatch.** All Task tool invocations happen from
-  this main session. `dev-discipline`, `red`, and `green` are flat
+  this main session. `dev-plan`, `red`, and `green` are flat leaf
   sub-agents; they do not themselves dispatch further sub-agents.
+- **The main session owns flow control.** When a leaf sub-agent returns,
+  the main session decides what to do next. Do not interpret a
+  sub-agent's "done" signal as the end of the workflow — only the
+  integration-choice at Phase 7 ends the workflow.
+- **Never use `dev-discipline` in this workflow.** That is core's
+  plan-and-stop agent (package: `anvil-core-stable`). With
+  `anvil-orchestrator-stable` installed, the plan phase uses `dev-plan`,
+  which returns the plan without stopping the workflow.
 - **REFACTOR is inline.** There is no dedicated refactor sub-agent.
 - **Verification is inline.** No sub-agent; just run the commands.
 - **One approval gate.** The plan-approval at Phase 1 is the only

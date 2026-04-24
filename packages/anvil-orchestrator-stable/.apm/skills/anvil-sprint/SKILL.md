@@ -41,7 +41,7 @@ Summary:
 6. **If yes:** inline the `anvil-develop.prompt.md` workflow (orchestrator
    version) in the current main session, with `ticket =
    <first-unblocked-ticket>`. All sub-agent dispatches from that inlined
-   workflow — `dev-discipline`, `red`, `green` — originate from this same
+   workflow — `dev-plan`, `red`, `green` — originate from this same
    main session as flat dispatches.
 7. **If no:** stop and print the next-step command.
 

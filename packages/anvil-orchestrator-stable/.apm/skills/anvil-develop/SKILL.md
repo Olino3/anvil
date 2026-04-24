@@ -13,9 +13,13 @@ user-invocable: true
 
 Run the full one-ticket TDD inner loop for a sprint ticket. The **main
 session** drives the flow; there is no orchestrator sub-agent. Sub-agents
-(`dev-discipline`, `red`, `green`, `sprint-syncer`) are dispatched flat —
-one at a time, from the main session only. Claude Code does not support
-nested sub-agent dispatch, so this flattened design is required.
+(`dev-plan`, `red`, `green`) are dispatched flat — one at a time, from
+the main session only. Claude Code does not support nested sub-agent
+dispatch, so this flattened design is required.
+
+The main session owns the approval gate. Leaf sub-agents produce
+artifacts and return; they do not end the workflow. The main session
+continues from phase to phase until the integration choice.
 
 ## Arguments
 
@@ -30,9 +34,15 @@ Summary:
 
 1. **Prep (inline):** locate ticket, verify config, read sprint context,
    verify branch, auto-create worktree per `worktree-discipline`.
-2. **Plan (flat sub-agent):** Task tool with `subagent_type: "dev-discipline"`
-   produces the RED/GREEN/REFACTOR plan. The main session relays the plan
-   to the user for approval.
+2. **Plan (flat sub-agent):** Task tool with `subagent_type: "dev-plan"`
+   produces and returns the RED/GREEN/REFACTOR plan. The main session
+   relays the plan to the user for approval; on approval the main session
+   continues to RED. On "needs changes," the main session re-dispatches
+   `dev-plan` with the redirection.
+
+   Do NOT use `dev-discipline` here — that is core's plan-and-stop agent,
+   which ends the interaction on return. `dev-plan` is orchestrator's
+   plan-and-return agent that hands flow control back to the main session.
 3. **RED (flat sub-agent):** on approval, Task tool with
    `subagent_type: "red"` writes the failing test suite and commits.
 4. **GREEN (flat sub-agent):** Task tool with `subagent_type: "green"`
@@ -54,8 +64,10 @@ Summary:
   that was removed because sub-agents cannot themselves dispatch further
   sub-agents on Claude Code.
 - **Flat sub-agent dispatches only.** All Task-tool calls originate from
-  the main session. `dev-discipline`, `red`, `green`, and `sprint-syncer`
-  are leaf agents — they do not dispatch further.
+  the main session. `dev-plan`, `red`, and `green` are leaf agents — they
+  do not dispatch further.
+- **The main session owns flow control.** Sub-agent return is not
+  workflow end. The main session continues through all phases.
 - **One approval gate.** Plan-approval is the only required user
   interaction until the integration-choice at the end.
 - **Skill loading is not a substitute for sub-agent dispatch.** Do NOT
