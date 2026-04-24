@@ -5,7 +5,7 @@ author: Olino3
 license: MIT
 dependencies:
   apm:
-    - /var/home/olino3/git/anvil/packages/anvil-common-stable
+    - Olino3/anvil/packages/anvil-common-stable
   mcp: []
 scripts:
   anvil:init: anvil-init.prompt.md

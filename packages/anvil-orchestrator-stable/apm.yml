@@ -5,8 +5,8 @@ author: Olino3
 license: MIT
 dependencies:
   apm:
-    - /var/home/olino3/git/anvil/packages/anvil-common-stable
-    - /var/home/olino3/git/anvil/packages/anvil-core-stable
+    - Olino3/anvil/packages/anvil-common-stable
+    - Olino3/anvil/packages/anvil-core-stable
   mcp: []
 scripts:
   anvil:develop: anvil-develop.prompt.md
