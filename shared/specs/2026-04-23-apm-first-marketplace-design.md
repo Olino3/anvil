@@ -228,49 +228,49 @@ step.
 │   ├── anvil-sync/
 │   └── anvil-status/
 └── prompts/
-    ├── anvil-init.prompt.md              # /anvil:init     | apm run anvil:init
-    ├── anvil-roadmap.prompt.md           # /anvil:roadmap  | apm run anvil:roadmap
-    ├── anvil-sprint.prompt.md            # /anvil:sprint   | input: phase
-    ├── anvil-develop.prompt.md           # /anvil:develop  | input: ticket — locate, verify deps, auto-worktree, plan, stop
-    ├── anvil-plan-ticket.prompt.md       # /anvil:plan     | input: ticket — internal; also standalone
-    ├── anvil-red.prompt.md               # /anvil:red      | input: ticket — whole-ticket failing suite
-    ├── anvil-green.prompt.md             # /anvil:green    | input: ticket — whole-ticket minimum code
-    ├── anvil-refactor.prompt.md          # /anvil:refactor | input: ticket — self-contained refactor discipline; no dedicated agent
-    ├── anvil-review.prompt.md            # /anvil:review   | input: phase
-    ├── anvil-sync.prompt.md              # /anvil:sync     | input: phase
-    └── anvil-status.prompt.md            # /anvil:status   | input: phase (optional)
+    ├── anvil-init.prompt.md              # /anvil-init     | apm run anvil-init
+    ├── anvil-roadmap.prompt.md           # /anvil-roadmap  | apm run anvil-roadmap
+    ├── anvil-sprint.prompt.md            # /anvil-sprint   | input: phase
+    ├── anvil-develop.prompt.md           # /anvil-develop  | input: ticket — locate, verify deps, auto-worktree, plan, stop
+    ├── anvil-plan-ticket.prompt.md       # /anvil-plan     | input: ticket — internal; also standalone
+    ├── anvil-red.prompt.md               # /anvil-red      | input: ticket — whole-ticket failing suite
+    ├── anvil-green.prompt.md             # /anvil-green    | input: ticket — whole-ticket minimum code
+    ├── anvil-refactor.prompt.md          # /anvil-refactor | input: ticket — self-contained refactor discipline; no dedicated agent
+    ├── anvil-review.prompt.md            # /anvil-review   | input: phase
+    ├── anvil-sync.prompt.md              # /anvil-sync     | input: phase
+    └── anvil-status.prompt.md            # /anvil-status   | input: phase (optional)
 ```
 
 **Note:** No `.apm/commands/` directory. Slash commands and `apm run` scripts
 are both served by the same `.apm/prompts/*.prompt.md` source files. APM's
 compiler generates `.claude/commands/anvil/<name>.md` and
 `.opencode/commands/<name>.md` from prompts automatically (file rename, no
-content change). Copilot CLI users invoke via `apm run anvil:<name>` or the
+content change). Copilot CLI users invoke via `apm run anvil-<name>` or the
 compiled `.github/prompts/*.prompt.md`. Cursor users invoke via `@<agent>`
 or `apm run`. One source, every invocation path.
 
-### Behavior of /anvil:develop in core
+### Behavior of /anvil-develop in core
 
 1. Locate ticket under `docs/anvil/sprints/**/<ticket-id>*.md`
 2. Verify all `Depends on:` tickets are Done; refuse otherwise
 3. Auto-create worktree per `worktree-discipline.instructions.md` (Phase 0)
 4. Invoke `dev-discipline.agent` for plan + approval gate
 5. On approval: stop. Report the three follow-up commands to run:
-   `/anvil:red <ticket>`, `/anvil:green <ticket>`, `/anvil:refactor <ticket>`
+   `/anvil-red <ticket>`, `/anvil-green <ticket>`, `/anvil-refactor <ticket>`
 
 ### Whole-ticket RED and GREEN
 
-- `/anvil:red <ticket>` / `apm run anvil:red --param ticket=<id>`: reads the
+- `/anvil-red <ticket>` / `apm run anvil-red --param ticket=<id>`: reads the
   ticket, enumerates every acceptance criterion, writes a complete failing
   test suite covering happy path + edge cases per criterion. Single commit:
   `test(scope): add failing tests for <ticket> acceptance criteria`.
-- `/anvil:green <ticket>` / `apm run anvil:green --param ticket=<id>`:
+- `/anvil-green <ticket>` / `apm run anvil-green --param ticket=<id>`:
   reads the same ticket, writes minimum production code to make the full
   suite pass. Single commit: `feat(scope): implement <ticket>`.
 
 ### Integration choice at ticket completion
 
-Happens at the end of `/anvil:refactor` (or `/anvil:green` if no refactor
+Happens at the end of `/anvil-refactor` (or `/anvil-green` if no refactor
 was warranted). Same five-option matrix as today's `Workflows.md` 3.1.3:
 
 | Option | Effect |
@@ -294,17 +294,17 @@ dependencies:
     - Olino3/anvil/packages/anvil-common-stable
   mcp: []
 scripts:
-  anvil:init: anvil-init.prompt.md
-  anvil:roadmap: anvil-roadmap.prompt.md
-  anvil:sprint: anvil-sprint.prompt.md
-  anvil:plan: anvil-plan-ticket.prompt.md
-  anvil:develop: anvil-develop.prompt.md
-  anvil:red: anvil-red.prompt.md
-  anvil:green: anvil-green.prompt.md
-  anvil:refactor: anvil-refactor.prompt.md
-  anvil:review: anvil-review.prompt.md
-  anvil:sync: anvil-sync.prompt.md
-  anvil:status: anvil-status.prompt.md
+  anvil-init: anvil-init.prompt.md
+  anvil-roadmap: anvil-roadmap.prompt.md
+  anvil-sprint: anvil-sprint.prompt.md
+  anvil-plan: anvil-plan-ticket.prompt.md
+  anvil-develop: anvil-develop.prompt.md
+  anvil-red: anvil-red.prompt.md
+  anvil-green: anvil-green.prompt.md
+  anvil-refactor: anvil-refactor.prompt.md
+  anvil-review: anvil-review.prompt.md
+  anvil-sync: anvil-sync.prompt.md
+  anvil-status: anvil-status.prompt.md
 ```
 
 ## Package: anvil-orchestrator-stable
@@ -367,7 +367,7 @@ those come from core unchanged.
 ### sprint-orchestrator flow (v2.0.0 scope)
 
 1. Invoke `pm.agent` to generate the sprint (same as core's
-   `/anvil:sprint`).
+   `/anvil-sprint`).
 2. Prompt: *"Develop the first unblocked ticket now?"*
 3. If yes: hand off to `develop-orchestrator` for that single ticket. When
    that ticket completes, stop.
@@ -379,7 +379,7 @@ is reserved for `anvil-autonomous-stable`.
 ### review-orchestrator flow
 
 1. Invoke `ba.agent` to produce `BA-REPORT.md` (same as core's
-   `/anvil:review`).
+   `/anvil-review`).
 2. Present BA's cleanup recommendations (splits, archival, dependency
    healing, status corrections).
 3. Single approval gate. On approval: auto-apply all recommended cleanup
@@ -387,7 +387,7 @@ is reserved for `anvil-autonomous-stable`.
 
 ### roadmap-orchestrator flow
 
-1. Invoke `pd.agent` conversation (same as core's `/anvil:roadmap`).
+1. Invoke `pd.agent` conversation (same as core's `/anvil-roadmap`).
 2. When the conversation ends and the roadmap is saved, prompt:
    *"Kick off a sprint for the current phase?"*
 3. If yes: hand off to `sprint-orchestrator`. Stop after one sprint kickoff.
@@ -424,10 +424,10 @@ dependencies:
     - Olino3/anvil/packages/anvil-core-stable
   mcp: []
 scripts:
-  anvil:develop: anvil-develop.prompt.md
-  anvil:sprint: anvil-sprint.prompt.md
-  anvil:roadmap: anvil-roadmap.prompt.md
-  anvil:review: anvil-review.prompt.md
+  anvil-develop: anvil-develop.prompt.md
+  anvil-sprint: anvil-sprint.prompt.md
+  anvil-roadmap: anvil-roadmap.prompt.md
+  anvil-review: anvil-review.prompt.md
 ```
 
 ## Compilation & host behavior
@@ -443,7 +443,7 @@ For a user project with all four hosts set up:
 | `skills/*/SKILL.md` | `.claude/skills/*/SKILL.md` | `.github/skills/*/SKILL.md` | `.cursor/skills/*/SKILL.md` | `.opencode/skills/*/SKILL.md` |
 | `instructions/*.instructions.md` (from common) | compiled into agent preambles | `.github/instructions/*.instructions.md` | `.cursor/rules/*.mdc` | depends on OpenCode instruction support |
 
-Every host additionally gets `apm run anvil:<script>` working for the
+Every host additionally gets `apm run anvil-<script>` working for the
 auto-discovered prompts.
 
 ### Override mechanics
@@ -463,7 +463,7 @@ auto-discovered prompts.
 
 ### User-visible result
 
-Same slash command name (`/anvil:develop`) does different things based on
+Same slash command name (`/anvil-develop`) does different things based on
 which packages are installed. Core-only: plan-and-stop. Orchestrator
 installed: full inner loop. No parallel command namespaces for the user to
 learn.
@@ -579,8 +579,8 @@ Three to verify during implementation before trusting the design:
    in APM's docs; the exact ordering rule (alphabetical? manifest order?
    resolution order?) is under-documented. Must be verified with a spike
    before the orchestrator override flow is trusted. If ambiguous,
-   fallback is distinct command names (`/anvil:develop` core,
-   `/anvil:auto-develop` orchestrator) and the override model is dropped.
+   fallback is distinct command names (`/anvil-develop` core,
+   `/anvil-auto-develop` orchestrator) and the override model is dropped.
 2. **OpenCode and Copilot sub-agent dispatch.** Cursor has nested dispatch
    explicitly since 2.5; Claude has it. OpenCode and Copilot single-level
    dispatch is *assumed* to work but is thinly documented. v2.0.0
@@ -593,7 +593,7 @@ Three to verify during implementation before trusting the design:
 
 ## Open questions (non-blocking)
 
-- **Script namespace style.** `anvil:red` (colon, APM doc style) vs.
+- **Script namespace style.** `anvil-red` (colon, APM doc style) vs.
   `anvil-red` (dash). Spec currently uses colon; trivially changeable.
 - **OpenCode instruction support.** If OpenCode doesn't have a first-class
   instructions home yet, common's instructions compile into agent

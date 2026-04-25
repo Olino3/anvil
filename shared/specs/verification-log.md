@@ -76,15 +76,15 @@ Packages: anvil-core-stable (with anvil-common-stable transitively)
 
 Result: init → roadmap → sprint → develop → red → green → refactor all OK.
 
-`/anvil:develop` stopped after plan approval (did not proceed to RED/GREEN).
-`/anvil:red`, `/anvil:green`, `/anvil:refactor` each produced a correct
+`/anvil-develop` stopped after plan approval (did not proceed to RED/GREEN).
+`/anvil-red`, `/anvil-green`, `/anvil-refactor` each produced a correct
 single commit and the refactor prompt presented the integration-choice
 matrix at the end.
 
 Naming note: Claude Code surfaces these slash commands as `/anvil-<stage>`
-(dash-separated, flat) rather than `/anvil:<stage>` (colon-namespaced) —
+(dash-separated, flat) rather than `/anvil-<stage>` (colon-namespaced) —
 this is APM's default compile format for Claude. Functionally equivalent;
-the README / Workflows doc talks about `/anvil:<stage>` for stylistic
+the README / Workflows doc talks about `/anvil-<stage>` for stylistic
 consistency with the script names in `apm.yml`, but the actual user-facing
 command is dash-separated. Consider an addendum to README when host
 surfacing is next updated.
@@ -97,7 +97,7 @@ Scratch project: `/tmp/anvil-v2-scratch-orch`
 Host: Claude Code
 Packages: anvil-orchestrator-stable (+ anvil-core-stable + anvil-common-stable)
 
-Result: `/anvil:develop MVP-001` ran end-to-end — plan (`@dev-plan`) →
+Result: `/anvil-develop MVP-001` ran end-to-end — plan (`@dev-plan`) →
 user approves → RED (`@red`) → GREEN (`@green`) → inline REFACTOR skip
 → inline verification → inline ticket/README update → integration-choice
 matrix. All three sub-agents dispatched flat via the Task tool, each
@@ -165,7 +165,7 @@ Packages: anvil-orchestrator-stable (+ anvil-core-stable + anvil-common-stable)
 Install target: copilot (compiled to `.github/agents/`, `.github/prompts/`,
 `.github/skills/`, `.github/instructions/`)
 
-Result: `/anvil:develop MVP-001` flow worked end-to-end — `@dev-plan`
+Result: `/anvil-develop MVP-001` flow worked end-to-end — `@dev-plan`
 dispatched, user approved plan, `@red` and `@green` dispatched flat as
 real sub-agents, verification inline, ticket/README updated, integration
 choice presented.
@@ -184,7 +184,7 @@ Packages: anvil-orchestrator-stable (+ anvil-core-stable + anvil-common-stable)
 Install target: opencode (compiled to `.opencode/agents/`,
 `.opencode/commands/`, `.opencode/skills/`)
 
-Result: `/anvil:develop MVP-001` flow worked end-to-end — same
+Result: `/anvil-develop MVP-001` flow worked end-to-end — same
 plan → approve → RED → GREEN → verify → integration-choice sequence as
 on Claude Code and Copilot CLI.
 

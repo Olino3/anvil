@@ -8,8 +8,8 @@ user-invocable: true
 
 ## Invocation
 
-- Slash command: `/anvil:develop <ticket-id>`
-- APM runtime: `apm run anvil:develop --param ticket=<ticket-id>`
+- Slash command: `/anvil-develop <ticket-id>`
+- APM runtime: `apm run anvil-develop --param ticket=<ticket-id>`
 
 Run the full one-ticket TDD inner loop for a sprint ticket. The **main
 session** drives the flow; there is no orchestrator sub-agent. Sub-agents

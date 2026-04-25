@@ -16,7 +16,7 @@ nested sub-agent dispatch.
 ### Phase 0 — Prep
 
 1. **Verify config.** Read `docs/anvil/config.yml`. If missing, instruct
-   the user to run `/anvil:init` first and stop.
+   the user to run `/anvil-init` first and stop.
 2. **Find target phase.** Read `ROADMAP.md`. Match `${input:phase}` against
    phase names, numbers, and prefixes. If ambiguous, ask.
 3. **Check for existing sprint.** Look in `docs/anvil/sprints/` for a
@@ -61,7 +61,7 @@ nested sub-agent dispatch.
    matrix is the last gate).
 
 10. **If no:** stop. Print the recommended next command:
-    `/anvil:develop <first-unblocked-ticket-id>`.
+    `/anvil-develop <first-unblocked-ticket-id>`.
 
 ## Constraints
 

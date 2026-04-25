@@ -8,14 +8,14 @@ dependencies:
     - Olino3/anvil/packages/anvil-common-stable
   mcp: []
 scripts:
-  anvil:init: anvil-init.prompt.md
-  anvil:roadmap: anvil-roadmap.prompt.md
-  anvil:sprint: anvil-sprint.prompt.md
-  anvil:plan: anvil-plan-ticket.prompt.md
-  anvil:develop: anvil-develop.prompt.md
-  anvil:red: anvil-red.prompt.md
-  anvil:green: anvil-green.prompt.md
-  anvil:refactor: anvil-refactor.prompt.md
-  anvil:review: anvil-review.prompt.md
-  anvil:sync: anvil-sync.prompt.md
-  anvil:status: anvil-status.prompt.md
+  anvil-init: anvil-init.prompt.md
+  anvil-roadmap: anvil-roadmap.prompt.md
+  anvil-sprint: anvil-sprint.prompt.md
+  anvil-plan: anvil-plan-ticket.prompt.md
+  anvil-develop: anvil-develop.prompt.md
+  anvil-red: anvil-red.prompt.md
+  anvil-green: anvil-green.prompt.md
+  anvil-refactor: anvil-refactor.prompt.md
+  anvil-review: anvil-review.prompt.md
+  anvil-sync: anvil-sync.prompt.md
+  anvil-status: anvil-status.prompt.md

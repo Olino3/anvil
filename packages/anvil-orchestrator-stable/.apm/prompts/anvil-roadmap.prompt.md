@@ -14,7 +14,7 @@ workflow for the current phase, or stop. No nested sub-agent dispatch.
 ### Phase 0 — Check config
 
 1. **Verify config.** Read `docs/anvil/config.yml`. If it doesn't exist,
-   instruct the user to run `/anvil:init` first and stop.
+   instruct the user to run `/anvil-init` first and stop.
 
 ### Phase 1 — Roadmap conversation (flat sub-agent dispatch)
 
@@ -53,7 +53,7 @@ workflow for the current phase, or stop. No nested sub-agent dispatch.
    Stop after the inlined workflow completes.
 
 8. **If no:** stop. Print the recommended next command:
-   `/anvil:sprint <current-phase>`.
+   `/anvil-sprint <current-phase>`.
 
 ## Constraints
 

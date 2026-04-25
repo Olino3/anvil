@@ -21,4 +21,4 @@ agent (`@pm`).
 
 At completion, report to the user the sprint directory path and the first
 unblocked ticket ID (lowest-ID ticket whose `Depends on` field is empty or
-fully satisfied). Suggest next step: `/anvil:develop <ticket-id>`.
+fully satisfied). Suggest next step: `/anvil-develop <ticket-id>`.

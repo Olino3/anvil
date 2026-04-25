@@ -20,4 +20,4 @@ the missing dependency and stop without producing partial output.
 
 At completion, emit as the final assistant message:
 `docs/anvil/config.yml` created or updated.
-Next step: `/anvil:roadmap` (or `apm run anvil:roadmap`).
+Next step: `/anvil-roadmap` (or `apm run anvil-roadmap`).

@@ -8,8 +8,8 @@ user-invocable: true
 
 ## Invocation
 
-- Slash command: `/anvil:review <phase>`
-- APM runtime: `apm run anvil:review --param phase=<phase>`
+- Slash command: `/anvil-review <phase>`
+- APM runtime: `apm run anvil-review --param phase=<phase>`
 
 Run sprint health analysis, present recommendations with an all-or-nothing
 approval gate, apply approved actions inline, then rebuild the sprint

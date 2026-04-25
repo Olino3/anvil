@@ -31,7 +31,7 @@ This is the target layout after v2.0.0 ships. Tasks below create or modify each 
 | `packages/anvil-common-stable/.apm/skills/ticket-template/SKILL.md` | Reference for ticket file structure | port of `plugins/anvil/skills/reference/ticket-template.md` |
 | `packages/anvil-common-stable/.apm/skills/ba-report-format/SKILL.md` | Reference for BA-REPORT.md structure | port of `plugins/anvil/skills/reference/report-format.md` |
 | `packages/anvil-common-stable/.apm/skills/anvil-config-schema/SKILL.md` | Reference for `docs/anvil/config.yml` schema | new (extracted from `plugins/anvil/skills/init/SKILL.md`) |
-| `packages/anvil-core-stable/apm.yml` | Package manifest; depends on common; declares `anvil:<stage>` scripts | new |
+| `packages/anvil-core-stable/apm.yml` | Package manifest; depends on common; declares `anvil-<stage>` scripts | new |
 | `packages/anvil-core-stable/.apm/agents/red.agent.md` | Whole-ticket failing-test persona | port of `plugins/anvil/agents/red-agent.agent.md`, rescoped to "all acceptance criteria + edge cases in one invocation" |
 | `packages/anvil-core-stable/.apm/agents/green.agent.md` | Whole-ticket minimum-implementation persona | port of `plugins/anvil/agents/green-agent.agent.md`, rescoped to "make the full failing suite pass" |
 | `packages/anvil-core-stable/.apm/agents/dev-discipline.agent.md` | Plan-and-approve persona; no dispatch | new (replaces the planning phases of today's `dev-agent.agent.md`) |
@@ -46,17 +46,17 @@ This is the target layout after v2.0.0 ships. Tasks below create or modify each 
 | `packages/anvil-core-stable/.apm/skills/anvil-review/SKILL.md` | When/how to use `ba.agent` | port of `plugins/anvil/skills/review/SKILL.md` |
 | `packages/anvil-core-stable/.apm/skills/anvil-sync/SKILL.md` | When/how to rebuild sprint README | port of `plugins/anvil/skills/sync/SKILL.md` |
 | `packages/anvil-core-stable/.apm/skills/anvil-status/SKILL.md` | Read-only status summary | port of `plugins/anvil/skills/status/SKILL.md` |
-| `packages/anvil-core-stable/.apm/prompts/anvil-init.prompt.md` | `/anvil:init` entry point | new, invokes `anvil-init` skill |
-| `packages/anvil-core-stable/.apm/prompts/anvil-roadmap.prompt.md` | `/anvil:roadmap` entry point | new, invokes `pd.agent` |
-| `packages/anvil-core-stable/.apm/prompts/anvil-sprint.prompt.md` | `/anvil:sprint <phase>` entry point | new, invokes `pm.agent`; `input: [phase]` |
-| `packages/anvil-core-stable/.apm/prompts/anvil-develop.prompt.md` | `/anvil:develop <ticket>` — locate, verify deps, auto-worktree, plan, stop | new, wraps Phase 0 of today's dev-agent + `dev-discipline.agent` planning |
+| `packages/anvil-core-stable/.apm/prompts/anvil-init.prompt.md` | `/anvil-init` entry point | new, invokes `anvil-init` skill |
+| `packages/anvil-core-stable/.apm/prompts/anvil-roadmap.prompt.md` | `/anvil-roadmap` entry point | new, invokes `pd.agent` |
+| `packages/anvil-core-stable/.apm/prompts/anvil-sprint.prompt.md` | `/anvil-sprint <phase>` entry point | new, invokes `pm.agent`; `input: [phase]` |
+| `packages/anvil-core-stable/.apm/prompts/anvil-develop.prompt.md` | `/anvil-develop <ticket>` — locate, verify deps, auto-worktree, plan, stop | new, wraps Phase 0 of today's dev-agent + `dev-discipline.agent` planning |
 | `packages/anvil-core-stable/.apm/prompts/anvil-plan-ticket.prompt.md` | Standalone plan-for-a-ticket (used by develop.prompt.md and available directly) | new, invokes `dev-discipline.agent` |
-| `packages/anvil-core-stable/.apm/prompts/anvil-red.prompt.md` | `/anvil:red <ticket>` — whole-ticket failing suite | new, invokes `red.agent` |
-| `packages/anvil-core-stable/.apm/prompts/anvil-green.prompt.md` | `/anvil:green <ticket>` — whole-ticket minimum code | new, invokes `green.agent` |
-| `packages/anvil-core-stable/.apm/prompts/anvil-refactor.prompt.md` | `/anvil:refactor <ticket>` — self-contained refactor discipline | new, no dedicated agent |
-| `packages/anvil-core-stable/.apm/prompts/anvil-review.prompt.md` | `/anvil:review <phase>` entry point | new, invokes `ba.agent` |
-| `packages/anvil-core-stable/.apm/prompts/anvil-sync.prompt.md` | `/anvil:sync <phase>` entry point | new, invokes `sprint-syncer.agent` |
-| `packages/anvil-core-stable/.apm/prompts/anvil-status.prompt.md` | `/anvil:status [phase]` entry point | new, read-only |
+| `packages/anvil-core-stable/.apm/prompts/anvil-red.prompt.md` | `/anvil-red <ticket>` — whole-ticket failing suite | new, invokes `red.agent` |
+| `packages/anvil-core-stable/.apm/prompts/anvil-green.prompt.md` | `/anvil-green <ticket>` — whole-ticket minimum code | new, invokes `green.agent` |
+| `packages/anvil-core-stable/.apm/prompts/anvil-refactor.prompt.md` | `/anvil-refactor <ticket>` — self-contained refactor discipline | new, no dedicated agent |
+| `packages/anvil-core-stable/.apm/prompts/anvil-review.prompt.md` | `/anvil-review <phase>` entry point | new, invokes `ba.agent` |
+| `packages/anvil-core-stable/.apm/prompts/anvil-sync.prompt.md` | `/anvil-sync <phase>` entry point | new, invokes `sprint-syncer.agent` |
+| `packages/anvil-core-stable/.apm/prompts/anvil-status.prompt.md` | `/anvil-status [phase]` entry point | new, read-only |
 | `packages/anvil-orchestrator-stable/apm.yml` | Package manifest; depends on common + core; declares four override scripts | new |
 | `packages/anvil-orchestrator-stable/.apm/agents/develop-orchestrator.agent.md` | Plan → RED → GREEN → REFACTOR → integration, single-level dispatch | new, replaces today's `dev-agent` flow with dispatch flattened |
 | `packages/anvil-orchestrator-stable/.apm/agents/sprint-orchestrator.agent.md` | `pm` → optional one-ticket handoff | new |
@@ -185,7 +185,7 @@ Expected: file contains "This is the OVERRIDE version." — not the base version
 
 If Step 2 shows OVERRIDE: the spec's assumption holds. Proceed.
 
-If Step 2 shows BASE: the collision rule does not favor the shallower package. Stop and revise the spec to use distinct command names (`/anvil:develop` core, `/anvil:auto-develop` orchestrator) for all four orchestrator overrides. Document the pivot in `shared/specs/2026-04-23-apm-first-marketplace-design.md` under a "Design revisions" section.
+If Step 2 shows BASE: the collision rule does not favor the shallower package. Stop and revise the spec to use distinct command names (`/anvil-develop` core, `/anvil-auto-develop` orchestrator) for all four orchestrator overrides. Document the pivot in `shared/specs/2026-04-23-apm-first-marketplace-design.md` under a "Design revisions" section.
 
 ```bash
 # Document the outcome either way:
@@ -738,7 +738,7 @@ components:
 
 ## Rules
 
-- Every ticket's `Component:` field must match a key in this file. If it does not, `/anvil:develop` and `red.agent` / `green.agent` will fail to pick commands.
+- Every ticket's `Component:` field must match a key in this file. If it does not, `/anvil-develop` and `red.agent` / `green.agent` will fail to pick commands.
 - Commands are run by the agent, not compiled or modified. Keep them shell-executable.
 ```
 
@@ -832,17 +832,17 @@ dependencies:
     - /var/home/olino3/git/anvil/packages/anvil-common-stable
   mcp: []
 scripts:
-  anvil:init: anvil-init.prompt.md
-  anvil:roadmap: anvil-roadmap.prompt.md
-  anvil:sprint: anvil-sprint.prompt.md
-  anvil:plan: anvil-plan-ticket.prompt.md
-  anvil:develop: anvil-develop.prompt.md
-  anvil:red: anvil-red.prompt.md
-  anvil:green: anvil-green.prompt.md
-  anvil:refactor: anvil-refactor.prompt.md
-  anvil:review: anvil-review.prompt.md
-  anvil:sync: anvil-sync.prompt.md
-  anvil:status: anvil-status.prompt.md
+  anvil-init: anvil-init.prompt.md
+  anvil-roadmap: anvil-roadmap.prompt.md
+  anvil-sprint: anvil-sprint.prompt.md
+  anvil-plan: anvil-plan-ticket.prompt.md
+  anvil-develop: anvil-develop.prompt.md
+  anvil-red: anvil-red.prompt.md
+  anvil-green: anvil-green.prompt.md
+  anvil-refactor: anvil-refactor.prompt.md
+  anvil-review: anvil-review.prompt.md
+  anvil-sync: anvil-sync.prompt.md
+  anvil-status: anvil-status.prompt.md
 ```
 
 **Note:** The local path dependency is only for local development. It will be rewritten to `Olino3/anvil/packages/anvil-common-stable` in Task 8.2 before release.
@@ -1156,8 +1156,8 @@ Expected: commit created; `ls packages/anvil-core-stable/.apm/agents/` shows 7 f
 For each skill, port the source verbatim except:
 
 - Update frontmatter `name:` to `anvil-<stage>` (e.g., `anvil-init`, `anvil-roadmap`)
-- Update any sentence that says "this skill dispatches dev-agent" or implies automatic dispatch — rewrite to name the explicit user action (e.g., "invoke `@pd` or run `apm run anvil:roadmap`")
-- Add an "Invocation" section near the top of each SKILL.md listing the three ways to trigger the underlying prompt: slash command on Claude/OpenCode, `@<agent>` on Cursor/Copilot, `apm run anvil:<stage>` everywhere
+- Update any sentence that says "this skill dispatches dev-agent" or implies automatic dispatch — rewrite to name the explicit user action (e.g., "invoke `@pd` or run `apm run anvil-roadmap`")
+- Add an "Invocation" section near the top of each SKILL.md listing the three ways to trigger the underlying prompt: slash command on Claude/OpenCode, `@<agent>` on Cursor/Copilot, `apm run anvil-<stage>` everywhere
 
 Do one per step; commit at the end.
 
@@ -1172,8 +1172,8 @@ Read `plugins/anvil/skills/init/SKILL.md`. Copy to `.../anvil-init/SKILL.md`, up
 ```markdown
 ## Invocation
 
-- Slash command: `/anvil:init`
-- APM runtime: `apm run anvil:init`
+- Slash command: `/anvil-init`
+- APM runtime: `apm run anvil-init`
 - Agent mention (Cursor, Copilot): not applicable — init is a project-setup skill, not an agent
 ```
 
@@ -1183,15 +1183,15 @@ Read `plugins/anvil/skills/init/SKILL.md`. Copy to `.../anvil-init/SKILL.md`, up
 mkdir -p packages/anvil-core-stable/.apm/skills/anvil-roadmap
 ```
 
-Port `plugins/anvil/skills/roadmap/SKILL.md` → `.../anvil-roadmap/SKILL.md` with name update and invocation section. Replace any "dispatches pd-agent" wording with "invoke `@pd` (where supported) or run `apm run anvil:roadmap`".
+Port `plugins/anvil/skills/roadmap/SKILL.md` → `.../anvil-roadmap/SKILL.md` with name update and invocation section. Replace any "dispatches pd-agent" wording with "invoke `@pd` (where supported) or run `apm run anvil-roadmap`".
 
 Invocation section:
 
 ```markdown
 ## Invocation
 
-- Slash command: `/anvil:roadmap`
-- APM runtime: `apm run anvil:roadmap`
+- Slash command: `/anvil-roadmap`
+- APM runtime: `apm run anvil-roadmap`
 - Agent mention: `@pd`
 ```
 
@@ -1208,8 +1208,8 @@ Invocation:
 ```markdown
 ## Invocation
 
-- Slash command: `/anvil:sprint <phase>`
-- APM runtime: `apm run anvil:sprint --param phase=<phase>`
+- Slash command: `/anvil-sprint <phase>`
+- APM runtime: `apm run anvil-sprint --param phase=<phase>`
 - Agent mention: `@pm <phase>`
 ```
 
@@ -1223,16 +1223,16 @@ Port `plugins/anvil/skills/develop/SKILL.md` → `.../anvil-develop/SKILL.md`, b
 
 - Steps 1-4 (locate, verify config, read sprint context, verify branch) stay.
 - Step 5 (create worktree) stays — auto-worktree is core's responsibility.
-- Step 6 (dispatch dev-agent) is replaced with: "Invoke `dev-discipline.agent` to produce a plan. Stop after the user approves. Report the three follow-up commands the user should run: `/anvil:red <ticket-id>`, `/anvil:green <ticket-id>`, `/anvil:refactor <ticket-id>`."
-- Steps 7-9 (present integration options, execute integration, post-completion) are **removed** — those happen at the end of `/anvil:refactor` (or `/anvil:green` if no refactor), not at the end of `/anvil:develop`.
+- Step 6 (dispatch dev-agent) is replaced with: "Invoke `dev-discipline.agent` to produce a plan. Stop after the user approves. Report the three follow-up commands the user should run: `/anvil-red <ticket-id>`, `/anvil-green <ticket-id>`, `/anvil-refactor <ticket-id>`."
+- Steps 7-9 (present integration options, execute integration, post-completion) are **removed** — those happen at the end of `/anvil-refactor` (or `/anvil-green` if no refactor), not at the end of `/anvil-develop`.
 
 Invocation:
 
 ```markdown
 ## Invocation
 
-- Slash command: `/anvil:develop <ticket-id>`
-- APM runtime: `apm run anvil:develop --param ticket=<ticket-id>`
+- Slash command: `/anvil-develop <ticket-id>`
+- APM runtime: `apm run anvil-develop --param ticket=<ticket-id>`
 ```
 
 - [ ] **Step 5: Port review skill**
@@ -1248,8 +1248,8 @@ Invocation:
 ```markdown
 ## Invocation
 
-- Slash command: `/anvil:review <phase>`
-- APM runtime: `apm run anvil:review --param phase=<phase>`
+- Slash command: `/anvil-review <phase>`
+- APM runtime: `apm run anvil-review --param phase=<phase>`
 - Agent mention: `@ba <phase>`
 ```
 
@@ -1266,8 +1266,8 @@ Invocation:
 ```markdown
 ## Invocation
 
-- Slash command: `/anvil:sync <phase>`
-- APM runtime: `apm run anvil:sync --param phase=<phase>`
+- Slash command: `/anvil-sync <phase>`
+- APM runtime: `apm run anvil-sync --param phase=<phase>`
 - Agent mention: `@sprint-syncer <phase>`
 ```
 
@@ -1284,8 +1284,8 @@ Invocation:
 ```markdown
 ## Invocation
 
-- Slash command: `/anvil:status [phase]`
-- APM runtime: `apm run anvil:status` or `apm run anvil:status --param phase=<phase>`
+- Slash command: `/anvil-status [phase]`
+- APM runtime: `apm run anvil-status` or `apm run anvil-status --param phase=<phase>`
 ```
 
 - [ ] **Step 8: Commit all seven skills**
@@ -1322,7 +1322,7 @@ Refer to `anvil-config-schema` skill (from anvil-common-stable) for the target
 schema of `docs/anvil/config.yml`.
 
 At completion, inform the user: `docs/anvil/config.yml` created / updated.
-Next step: `/anvil:roadmap` (or `apm run anvil:roadmap`).
+Next step: `/anvil-roadmap` (or `apm run anvil-roadmap`).
 ```
 
 - [ ] **Step 2: anvil-roadmap.prompt.md**
@@ -1342,7 +1342,7 @@ for the procedure, and the `roadmap-format` skill (from anvil-common-stable)
 for the target structure.
 
 At completion, inform the user: `ROADMAP.md` created / updated. Next step:
-`/anvil:sprint <phase>` (or `apm run anvil:sprint --param phase=<phase>`).
+`/anvil-sprint <phase>` (or `apm run anvil-sprint --param phase=<phase>`).
 ```
 
 - [ ] **Step 3: anvil-sprint.prompt.md**
@@ -1364,7 +1364,7 @@ Follow the `anvil-sprint` skill's procedure; use the `sprint-readme-format`
 and `ticket-template` skills (from anvil-common-stable) for target structure.
 
 At completion, inform the user the sprint directory was created and what the
-first unblocked ticket is. Suggest: `/anvil:develop <ticket-id>`.
+first unblocked ticket is. Suggest: `/anvil-develop <ticket-id>`.
 ```
 
 - [ ] **Step 4: anvil-develop.prompt.md** (the locate/verify/worktree/plan/stop entry point)
@@ -1390,7 +1390,7 @@ Plan the implementation of ticket `${input:ticket}`.
 4. **Verify branch.** If the current git branch does not match the sprint's Branch field, ask the user to switch first.
 5. **Auto-create worktree.** Follow `worktree-discipline` instructions (from anvil-common-stable): create `.worktrees/${input:ticket}` on branch `feature/{sprint-slug}-${input:ticket}` (where sprint-slug is the sprint branch with any leading `feature/` stripped). Add `.worktrees/` to `.gitignore` if needed. `cd` into the worktree.
 6. **Invoke `dev-discipline.agent`** to produce a plan for the ticket and ask for approval. Stop after approval.
-7. **Report next steps.** Tell the user to run, in order: `/anvil:red ${input:ticket}`, `/anvil:green ${input:ticket}`, then optionally `/anvil:refactor ${input:ticket}`. `/anvil:refactor` (or `/anvil:green` if no refactor warranted) will present the integration-choice matrix at completion.
+7. **Report next steps.** Tell the user to run, in order: `/anvil-red ${input:ticket}`, `/anvil-green ${input:ticket}`, then optionally `/anvil-refactor ${input:ticket}`. `/anvil-refactor` (or `/anvil-green` if no refactor warranted) will present the integration-choice matrix at completion.
 
 ## Constraints
 
@@ -1645,12 +1645,12 @@ Expected: twelve skill directories total.
 apm list
 ```
 
-Expected: shows 11 `anvil:*` scripts.
+Expected: shows 11 `anvil-*` scripts.
 
 - [ ] **Step 6: Smoke-test one script compilation**
 
 ```bash
-apm preview anvil:red --param ticket=TEST-001
+apm preview anvil-red --param ticket=TEST-001
 ```
 
 Expected: prints the RED prompt body with `${input:ticket}` substituted to `TEST-001`.
@@ -1706,10 +1706,10 @@ dependencies:
     - /var/home/olino3/git/anvil/packages/anvil-core-stable
   mcp: []
 scripts:
-  anvil:develop: anvil-develop.prompt.md
-  anvil:sprint: anvil-sprint.prompt.md
-  anvil:roadmap: anvil-roadmap.prompt.md
-  anvil:review: anvil-review.prompt.md
+  anvil-develop: anvil-develop.prompt.md
+  anvil-sprint: anvil-sprint.prompt.md
+  anvil-roadmap: anvil-roadmap.prompt.md
+  anvil-review: anvil-review.prompt.md
 ```
 
 - [ ] **Step 3: Commit**
@@ -1882,7 +1882,7 @@ reserved for `anvil-autonomous-stable` (future package).
    ticket.
 
 5. **If no:** stop. Print the recommended next command:
-   `/anvil:develop <first-unblocked-ticket-id>`.
+   `/anvil-develop <first-unblocked-ticket-id>`.
 
 ## Constraints
 
@@ -1952,7 +1952,7 @@ sprint for the current phase.
    execution, not nested dispatch). Wait for completion. Stop.
 
 5. **If no:** stop. Print the recommended next command:
-   `/anvil:sprint <current-phase>`.
+   `/anvil-sprint <current-phase>`.
 
 ## Constraints
 
@@ -2456,29 +2456,29 @@ The sprint directory (`docs/anvil/sprints/...`), ROADMAP.md, and config
 ## Quick start
 
 ```bash
-/anvil:init                   # detect stack, write config
-/anvil:roadmap                # create ROADMAP.md (pd-agent conversation)
-/anvil:sprint MVP             # break phase into tickets (pm-agent)
-/anvil:develop MVP-001        # implement ticket (behavior depends on installed package)
-/anvil:review MVP             # sprint health + verification
+/anvil-init                   # detect stack, write config
+/anvil-roadmap                # create ROADMAP.md (pd-agent conversation)
+/anvil-sprint MVP             # break phase into tickets (pm-agent)
+/anvil-develop MVP-001        # implement ticket (behavior depends on installed package)
+/anvil-review MVP             # sprint health + verification
 ```
 
 ## Commands
 
 | Command | anvil-core-stable | anvil-orchestrator-stable |
 |---|---|---|
-| `/anvil:init` | interactive setup | same |
-| `/anvil:roadmap` | pd conversation | pd conversation + optional sprint handoff |
-| `/anvil:sprint <phase>` | pm generates sprint | pm + optional one-ticket handoff |
-| `/anvil:develop <ticket>` | locate + worktree + plan, then stop | full inner loop: plan → RED → GREEN → REFACTOR → integration |
-| `/anvil:red <ticket>` | whole-ticket failing suite | same (from core) |
-| `/anvil:green <ticket>` | whole-ticket minimum code | same (from core) |
-| `/anvil:refactor <ticket>` | self-contained refactor + integration choice | same (from core) |
-| `/anvil:review <phase>` | ba reports; no auto-apply | ba + auto-apply cleanup with approval |
-| `/anvil:sync <phase>` | rebuild sprint README | same (from core) |
-| `/anvil:status [phase]` | read-only summary | same (from core) |
+| `/anvil-init` | interactive setup | same |
+| `/anvil-roadmap` | pd conversation | pd conversation + optional sprint handoff |
+| `/anvil-sprint <phase>` | pm generates sprint | pm + optional one-ticket handoff |
+| `/anvil-develop <ticket>` | locate + worktree + plan, then stop | full inner loop: plan → RED → GREEN → REFACTOR → integration |
+| `/anvil-red <ticket>` | whole-ticket failing suite | same (from core) |
+| `/anvil-green <ticket>` | whole-ticket minimum code | same (from core) |
+| `/anvil-refactor <ticket>` | self-contained refactor + integration choice | same (from core) |
+| `/anvil-review <phase>` | ba reports; no auto-apply | ba + auto-apply cleanup with approval |
+| `/anvil-sync <phase>` | rebuild sprint README | same (from core) |
+| `/anvil-status [phase]` | read-only summary | same (from core) |
 
-Every command is also available as `apm run anvil:<stage> --param ...`.
+Every command is also available as `apm run anvil-<stage> --param ...`.
 
 ## `.gitignore` guidance
 
@@ -2562,10 +2562,10 @@ that commands now come from two packages (core or orchestrator) and
 behavior depends on which is installed. Leave the per-workflow recipes
 (1.1–3.3) intact but update any step that said "dev-agent dispatches
 red-agent" to say "orchestrator dispatches @red (with anvil-orchestrator-stable
-installed) or the user invokes `/anvil:red` explicitly (with anvil-core-stable
+installed) or the user invokes `/anvil-red` explicitly (with anvil-core-stable
 only)".
 
-Update the "Artifact map" table: `/anvil:develop` writes depend on the
+Update the "Artifact map" table: `/anvil-develop` writes depend on the
 installed package (core: worktree + plan only; orchestrator: full inner loop).
 
 At the top, add a new introduction paragraph:
@@ -2774,7 +2774,7 @@ Expected: every `echo` line prints. If any fails, the corresponding package's co
 apm list
 ```
 
-Expected: shows 11 `anvil:*` scripts (core + four orchestrator overrides merged).
+Expected: shows 11 `anvil-*` scripts (core + four orchestrator overrides merged).
 
 - [ ] **Step 4: Verify override content**
 
@@ -2813,12 +2813,12 @@ apm install anvil-core-stable@anvil-local --target claude
 
 Expected: exit 0; `.claude/commands/anvil/develop.md` exists and contains core's plan-and-stop content.
 
-- [ ] **Step 2: In Claude Code, run `/anvil:init` in the scratch project**
+- [ ] **Step 2: In Claude Code, run `/anvil-init` in the scratch project**
 
-Open the scratch project in Claude Code. Invoke `/anvil:init`. Work through
+Open the scratch project in Claude Code. Invoke `/anvil-init`. Work through
 the interactive config. Expected: `docs/anvil/config.yml` is written.
 
-- [ ] **Step 3: Run `/anvil:roadmap` and create a minimal ROADMAP.md**
+- [ ] **Step 3: Run `/anvil-roadmap` and create a minimal ROADMAP.md**
 
 Example prompts to supply:
 - "Scratch test project. Two phases: MVP and POLISH. Prefixes MVP and POLISH."
@@ -2826,12 +2826,12 @@ Example prompts to supply:
 
 Expected: `ROADMAP.md` is written with two phases.
 
-- [ ] **Step 4: Run `/anvil:sprint MVP`**
+- [ ] **Step 4: Run `/anvil-sprint MVP`**
 
 Expected: `docs/anvil/sprints/v*-mvp/` directory with at least one ticket
 (`MVP-001-*.md`) and a `README.md`. Sprint feature branch created.
 
-- [ ] **Step 5: Run `/anvil:develop MVP-001`**
+- [ ] **Step 5: Run `/anvil-develop MVP-001`**
 
 Expected: worktree created at `.worktrees/MVP-001` on branch
 `feature/mvp-MVP-001` (per worktree-discipline, with the leading
@@ -2839,17 +2839,17 @@ Expected: worktree created at `.worktrees/MVP-001` on branch
 dev-discipline agent produces a plan and asks for approval. The command
 stops after approval — it does NOT proceed to RED/GREEN automatically.
 
-- [ ] **Step 6: Run `/anvil:red MVP-001` in the worktree**
+- [ ] **Step 6: Run `/anvil-red MVP-001` in the worktree**
 
 Expected: `@red` writes failing tests covering the MVP-001 acceptance
 criteria; commits `test(...)` once. Tests fail for the right reason.
 
-- [ ] **Step 7: Run `/anvil:green MVP-001`**
+- [ ] **Step 7: Run `/anvil-green MVP-001`**
 
 Expected: `@green` writes minimum code; commits `feat(...)` once. Tests
 pass.
 
-- [ ] **Step 8: Run `/anvil:refactor MVP-001`**
+- [ ] **Step 8: Run `/anvil-refactor MVP-001`**
 
 Expected: either a `refactor(...)` commit or a skip (no refactor
 warranted); then the integration-choice matrix is presented. Select
@@ -2889,7 +2889,7 @@ rm -rf .worktrees apm_modules .apm apm.lock.yaml .claude docs ROADMAP.md
 
 ### Task 6.3: Real Anvil workflow on scratch (orchestrator path)
 
-Same as 6.2 but with orchestrator installed, and `/anvil:develop` should
+Same as 6.2 but with orchestrator installed, and `/anvil-develop` should
 run the full inner loop.
 
 - [ ] **Step 1: Install orchestrator**
@@ -2904,9 +2904,9 @@ apm install anvil-orchestrator-stable@anvil-local --target claude
 
 Expected: all three packages installed.
 
-- [ ] **Step 2: Run `/anvil:init`, `/anvil:roadmap`, `/anvil:sprint MVP`** (same as 6.2 steps 2-4)
+- [ ] **Step 2: Run `/anvil-init`, `/anvil-roadmap`, `/anvil-sprint MVP`** (same as 6.2 steps 2-4)
 
-- [ ] **Step 3: Run `/anvil:develop MVP-001`**
+- [ ] **Step 3: Run `/anvil-develop MVP-001`**
 
 Expected: worktree created, plan produced, approval asked. On approval,
 orchestrator automatically dispatches `@red`, then `@green`, then
@@ -2924,7 +2924,7 @@ Scratch project: /tmp/anvil-v2-scratch
 Host: Claude Code
 Packages: anvil-orchestrator-stable (+ core + common)
 
-Result: `/anvil:develop` ran [plan → RED → GREEN → REFACTOR → integration] or FAILED at <stage>
+Result: `/anvil-develop` ran [plan → RED → GREEN → REFACTOR → integration] or FAILED at <stage>
 
 Sub-agent dispatch: [worked | fell back to inline]
 
@@ -3356,8 +3356,8 @@ Every one of the following is simultaneously true:
 2. `plugins/anvil/` and `.claude-plugin/marketplace.json` no longer exist in the repo.
 3. `marketplace.json` at repo root lists all three packages, with `anvil-common-stable` marked internal.
 4. `apm install anvil-orchestrator-stable@anvil` in a fresh scratch project produces complete compiled outputs for Claude Code, Copilot CLI, Cursor, and OpenCode.
-5. In Claude Code, `/anvil:develop <ticket>` with orchestrator installed runs the full plan → RED → GREEN → REFACTOR → integration loop with one approval.
-6. In Claude Code, `/anvil:develop <ticket>` with only core installed stops after plan approval and prints the next-command guidance.
+5. In Claude Code, `/anvil-develop <ticket>` with orchestrator installed runs the full plan → RED → GREEN → REFACTOR → integration loop with one approval.
+6. In Claude Code, `/anvil-develop <ticket>` with only core installed stops after plan approval and prints the next-command guidance.
 7. `v2.0.0` tag is pushed; CI has attached 8 plugin bundles to the GitHub release.
 8. An end user running `claude /plugin install anvil-orchestrator-stable` against `https://github.com/Olino3/anvil.git` gets working content.
 9. `shared/specs/verification-log.md` contains outcomes for risks #1, #2, #3 and the Phase 6 smoke tests.

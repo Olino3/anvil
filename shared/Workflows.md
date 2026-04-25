@@ -33,7 +33,7 @@ Commands are the same names across packages, but **[core]** stops at human-in-th
 | `/anvil-sync <phase>` | `@sprint-syncer` rebuilds sprint README | same (from core) |
 | `/anvil-status [phase]` | Read-only summary | same (from core) |
 
-Hosts surface these as `/anvil-<stage>` (dash) — Claude Code, Copilot CLI, Cursor, and OpenCode all reject colons in slash-command grammar. The colon form (`anvil:<stage>`) is the script key in `apm.yml` and is what you pass to `apm run anvil:<stage> --param ...`.
+Hosts surface these as `/anvil-<stage>` (dash) — Claude Code, Copilot CLI, Cursor, and OpenCode all reject colons in slash-command grammar. The colon form (`anvil-<stage>`) is the script key in `apm.yml` and is what you pass to `apm run anvil-<stage> --param ...`.
 
 ## Artifact map
 

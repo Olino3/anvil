@@ -118,7 +118,7 @@ Phases are numbered sequentially. Phase N MUST be completable using only artifac
 
 | From | To | Trigger | Actor |
 |---|---|---|---|
-| Not Started | In Progress | `/anvil:sprint` is run | pd-agent |
+| Not Started | In Progress | `/anvil-sprint` is run | pd-agent |
 | In Progress | Complete (recommended) | All sprint tickets Done and verified | ba-agent (recommends) |
 | In Progress | Complete (final) | ba-agent recommendation accepted | pd-agent |
 

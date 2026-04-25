@@ -9,7 +9,7 @@ dependencies:
     - Olino3/anvil/packages/anvil-core-stable
   mcp: []
 scripts:
-  anvil:develop: anvil-develop.prompt.md
-  anvil:sprint: anvil-sprint.prompt.md
-  anvil:roadmap: anvil-roadmap.prompt.md
-  anvil:review: anvil-review.prompt.md
+  anvil-develop: anvil-develop.prompt.md
+  anvil-sprint: anvil-sprint.prompt.md
+  anvil-roadmap: anvil-roadmap.prompt.md
+  anvil-review: anvil-review.prompt.md

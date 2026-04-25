@@ -104,7 +104,7 @@ Present the five-option matrix at completion.
   listed. The orchestrator main session presents the plan to the user
   and owns the approval gate. If the user wants changes, the main
   session re-invokes you with the redirection.
-- **Do NOT suggest next commands.** No "Run `/anvil:red ...` next"
+- **Do NOT suggest next commands.** No "Run `/anvil-red ...` next"
   language. The orchestrator owns flow control.
 - **Do NOT dispatch other agents.** You are a leaf agent.
 - **Do NOT write code or tests.** Planning only.

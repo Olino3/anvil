@@ -83,11 +83,11 @@ The sprint directory (`docs/anvil/sprints/...`), ROADMAP.md, and config
 | `/anvil-sync <phase>` | rebuild sprint README | same (from core) |
 | `/anvil-status [phase]` | read-only summary | same (from core) |
 
-Slash commands compile from the `anvil:<stage>` script keys in each
+Slash commands compile from the `anvil-<stage>` script keys in each
 package's `apm.yml`. Hosts (Claude Code, Copilot CLI, Cursor, OpenCode)
 surface them with a dash separator — `/anvil-<stage>` — because their
 slash-command grammar doesn't accept colons. The same scripts are also
-runnable via APM directly: `apm run anvil:<stage> --param ...`.
+runnable via APM directly: `apm run anvil-<stage> --param ...`.
 
 ## `.gitignore` guidance
 

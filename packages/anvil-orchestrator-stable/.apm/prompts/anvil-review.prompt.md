@@ -71,7 +71,7 @@ README via a flat `@sprint-syncer` dispatch. No nested sub-agent dispatch.
 
 8. Print: `BA-REPORT.md written; no actions applied.` Suggest the user
    review the report and either apply actions manually or re-invoke
-   `/anvil:review` later.
+   `/anvil-review` later.
 
 ## Constraints
 

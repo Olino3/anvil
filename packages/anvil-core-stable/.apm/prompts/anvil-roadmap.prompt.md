@@ -18,4 +18,4 @@ Produce or update `ROADMAP.md` via the Product Director agent (`@pd`).
 
 At completion, emit as the final assistant message:
 `ROADMAP.md` created or updated.
-Next step: `/anvil:sprint <phase>` (or `apm run anvil:sprint --param phase=<phase>`).
+Next step: `/anvil-sprint <phase>` (or `apm run anvil-sprint --param phase=<phase>`).

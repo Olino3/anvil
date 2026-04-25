@@ -8,8 +8,8 @@ user-invocable: true
 
 ## Invocation
 
-- Slash command: `/anvil:roadmap`
-- APM runtime: `apm run anvil:roadmap`
+- Slash command: `/anvil-roadmap`
+- APM runtime: `apm run anvil-roadmap`
 
 Create or update `ROADMAP.md`, then optionally inline the flattened sprint
 workflow for the current phase. The **main session** drives the flow;
@@ -27,7 +27,7 @@ The main session executes the workflow documented in
 Summary:
 
 1. **Verify config (inline):** read `docs/anvil/config.yml`; if missing,
-   prompt user to run `/anvil:init` first.
+   prompt user to run `/anvil-init` first.
 2. **Roadmap conversation (flat sub-agent):** Task tool with
    `subagent_type: "pd"` conducts the conversation and writes / updates
    `ROADMAP.md`.

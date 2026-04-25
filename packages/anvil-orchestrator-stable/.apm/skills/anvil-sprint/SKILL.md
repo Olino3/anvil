@@ -8,8 +8,8 @@ user-invocable: true
 
 ## Invocation
 
-- Slash command: `/anvil:sprint <phase>`
-- APM runtime: `apm run anvil:sprint --param phase=<phase>`
+- Slash command: `/anvil-sprint <phase>`
+- APM runtime: `apm run anvil-sprint --param phase=<phase>`
 
 Generate a sprint from a ROADMAP phase, then optionally inline the
 flattened develop workflow for the first unblocked ticket. The **main

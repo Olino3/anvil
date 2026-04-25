@@ -24,10 +24,10 @@ Plan the implementation of ticket `${input:ticket}`.
 7. **On approval, report next steps and stop.** If the user does not approve (any reply other than `yes`/`proceed`/`approved`/`go`), stop without reporting next steps. On approval, emit:
    ```
    Plan approved. Run, in order:
-     1. /anvil:red ${input:ticket}
-     2. /anvil:green ${input:ticket}
-     3. /anvil:refactor ${input:ticket}   (optional; skip if no refactor warranted)
-   The final step (/anvil:refactor, or /anvil:green if refactor is skipped) will present the integration-choice matrix.
+     1. /anvil-red ${input:ticket}
+     2. /anvil-green ${input:ticket}
+     3. /anvil-refactor ${input:ticket}   (optional; skip if no refactor warranted)
+   The final step (/anvil-refactor, or /anvil-green if refactor is skipped) will present the integration-choice matrix.
    ```
 
 ## Constraints
