@@ -6,9 +6,17 @@ input:
 
 # Anvil Plan Ticket
 
-Invoke `dev-discipline.agent` to produce a plan for ticket `${input:ticket}`.
+Invoke the `dev-discipline.agent` to produce a RED/GREEN/REFACTOR plan for
+ticket `${input:ticket}`. The agent owns the plan's shape, halt
+conditions, and approval prompt — do not paraphrase or override them.
 
-Do not create a worktree, do not modify any files. Plan only.
+If `${input:ticket}` is missing, malformed, or cannot be located, request
+clarification and stop. Do not fabricate a plan.
 
-At completion, ask the user: *"Proceed with this plan?"* Stop after the
-response.
+Plan only. Do not create or enter a worktree, do not modify files, do not
+dispatch sub-agents (`@red`, `@green`, etc.), and do not invoke other
+slash commands.
+
+The agent ends by asking the user "Proceed with this plan?". Stop after
+that line is emitted; wait for the next user turn before doing anything
+further.

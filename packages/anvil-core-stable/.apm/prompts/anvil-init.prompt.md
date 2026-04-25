@@ -5,11 +5,19 @@ input: []
 
 # Anvil Init
 
-Set up Anvil for this project through interactive conversation. Invoke the
-`anvil-init` skill and follow its procedure.
+Initialize Anvil for the current project. Detect the tech stack from
+repository contents, confirm auto-detected values with the user, and write
+or update `docs/anvil/config.yml`. Follow the procedure in the `anvil-init`
+skill.
 
-Refer to `anvil-config-schema` skill (from anvil-common-stable) for the target
-schema of `docs/anvil/config.yml`.
+Use the `anvil-config-schema` skill (from anvil-common-stable) as the
+authoritative schema for `docs/anvil/config.yml`. Do not introduce keys or
+types that the schema does not define.
 
-At completion, inform the user: `docs/anvil/config.yml` created / updated.
+If `docs/anvil/config.yml` already exists, confirm whether to overwrite or
+update it before writing. If a referenced skill cannot be resolved, report
+the missing dependency and stop without producing partial output.
+
+At completion, emit as the final assistant message:
+`docs/anvil/config.yml` created or updated.
 Next step: `/anvil:roadmap` (or `apm run anvil:roadmap`).

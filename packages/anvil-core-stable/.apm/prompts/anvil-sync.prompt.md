@@ -1,14 +1,27 @@
 ---
 description: Rebuild a sprint README from its ticket files to fix drift. Read-only with respect to tickets; only the sprint README changes.
 input:
-  - phase: "Phase name, version, or prefix"
+  - phase: "Phase name, version, or prefix matched case-insensitively against ROADMAP phase IDs and titles"
 ---
 
 # Anvil Sync
 
 Invoke the `@sprint-syncer` agent for phase `${input:phase}`.
 
-Follow `anvil-sync` skill procedure. Use `sprint-readme-format` (from
-anvil-common-stable) for the target structure.
+- **Phase resolution:** match `${input:phase}` case-insensitively against
+  ROADMAP phase IDs and titles. If no phase matches, halt and ask the
+  user to disambiguate; do not infer.
+- **Procedure:** follow the `anvil-sync` skill.
+- **Output structure:** the `sprint-readme-format` skill (from
+  anvil-common-stable) is authoritative for the rebuilt `README.md`.
+- **Write scope:** only the sprint `README.md` changes. Ticket files are
+  read-only in this prompt.
+- **Single pass:** do not re-invoke `@sprint-syncer` after it returns.
 
-Report which ticket statuses changed in the rebuild (if any).
+Report status changes as a bulleted list, one entry per affected ticket:
+
+```
+- <TICKET-ID>: <previous-status> -> <new-status>
+```
+
+If no statuses changed, report exactly: `No status changes.`
