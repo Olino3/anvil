@@ -67,7 +67,9 @@ Suggested commit message following commit conventions.
 
 ## Verification Steps
 
-Runnable commands that verify the ticket is done. Use test/build/lint commands from `{Component}` in `docs/anvil/config.yml`. Every command must pass before marking Done.
+Acceptance Criteria define the end state; Verification Steps are the repeatable commands that prove it.
+
+List 2–5 runnable shell commands drawn from `{Component}` in `docs/anvil/config.yml` (test/build/lint). All MUST exit 0 before Status is set to Done. Commands run in sequence; stop on first failure.
 
 ---
 
@@ -78,6 +80,26 @@ Runnable commands that verify the ticket is done. Use test/build/lint commands f
 ```
 
 **Sentinel:** Use the literal string `_(none)_` when there are no dependencies or blocks.
+
+## Rendered Example
+
+```markdown
+# MVP-001 — User Login
+
+**Status:** Open
+**Phase:** MVP (v0.1.0)
+**Type:** Feat
+**Component:** auth
+**Depends on:** _(none)_
+**Blocks:** [MVP-002](MVP-002-session-management.md)
+```
+
+All six header fields are required. Field order is fixed as shown.
+
+## Implementation Checklist Rules
+
+- Each sub-step MUST name a file, command, or function to act on.
+- The final step MUST be `Commit` and reference commit conventions.
 
 ## Field Definitions
 
@@ -95,7 +117,7 @@ Runnable commands that verify the ticket is done. Use test/build/lint commands f
 - Dependencies MUST be bidirectional: if A depends on B, then B must list A in Blocks
 - sprint-syncer-agent automatically fixes missing reverse references
 - No circular dependencies allowed
-- dev-agent refuses to start a ticket whose dependencies are not all `Done`
+- dev-agent MUST NOT begin implementation until all dependency tickets have `Status: Done`; if not, emit a blocking error and set Status: Blocked
 
 ## Acceptance Criteria Rules
 
@@ -123,7 +145,13 @@ If any Verification Steps command fails:
 ## Operational Triggers
 
 **pm-agent:**
-- When creating a new ticket: read ROADMAP.md (extract Phase, Prefix), read docs/anvil/config.yml (validate Component), generate filename matching `{PREFIX}-{NNN}-{kebab-description}.md`
+- When creating a new ticket, follow this sequence:
+  1. Read `ROADMAP.md` to extract Phase and Prefix.
+  2. Read `docs/anvil/config.yml` to validate Component against the `components` keys.
+  3. Grep the sprint directory for existing `{PREFIX}-*` files to determine the next NNN (highest existing + 1, zero-padded to three digits).
+  4. Fill all six header fields.
+  5. Enforce dependency backlinks: for every `Depends on` entry, update the target ticket's `Blocks` field.
+  6. Write the file as `{PREFIX}-{NNN}-{kebab-description}.md`.
 
 **dev-agent:**
 - Before starting work: verify all `Depends on` tickets are `Done`; if not, set Status `Blocked`

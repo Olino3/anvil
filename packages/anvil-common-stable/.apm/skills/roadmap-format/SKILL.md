@@ -6,7 +6,7 @@ user-invocable: false
 
 # ROADMAP Format
 
-Reference file for pd-agent and ba-agent. Defines the canonical structure of `ROADMAP.md`.
+Canonical structure of `ROADMAP.md`. Agents must follow this format exactly unless overridden by higher-priority instructions.
 
 ## Location
 
@@ -22,9 +22,9 @@ Reference file for pd-agent and ba-agent. Defines the canonical structure of `RO
 ## Phases
 
 ### Phase {N} — {Phase Name}
-**Version:** {vX.Y.Z} *(optional — omit if project doesn't use semver)*
+**Version:** {vX.Y.Z} <!-- optional: omit if project doesn't use semver -->
 **Status:** {Not Started | In Progress | Complete}
-**Prefix:** {PREFIX} *(uppercase, 3-5 characters, derived from phase name, unique across all phases)*
+**Prefix:** {PREFIX} <!-- uppercase, 3-5 chars, derived from phase name, unique across all phases -->
 **Theme:** {One-sentence description of this phase's focus}
 
 #### Goals
@@ -36,8 +36,7 @@ Reference file for pd-agent and ba-agent. Defines the canonical structure of `RO
 - [ ] {Deliverable}
 
 #### Avoid Deepening
-
-Areas to avoid investing in because a later phase replaces them.
+<!-- areas intentionally left shallow because a later phase replaces them -->
 
 - {Area} — {which phase replaces it (or TBD if undetermined)}
 
@@ -50,6 +49,32 @@ Areas to avoid investing in because a later phase replaces them.
 <!-- repeat for each phase -->
 ```
 
+## Example
+
+```markdown
+### Phase 1 — MVP
+**Version:** v0.1.0
+**Status:** In Progress
+**Prefix:** MVP
+**Theme:** Ship a usable single-user CLI that reads a config and executes one command end-to-end.
+
+#### Goals
+- CLI exits 0 on the happy path for ≥1 sample config under `examples/`
+- `README.md` quickstart takes a new user from `git clone` to first green test in under 5 minutes
+
+#### Deliverables
+- [ ] `anvil` CLI entry point with `run` subcommand
+- [ ] Config loader for `docs/anvil/config.yml`
+- [ ] Integration test covering the MVP happy path
+
+#### Avoid Deepening
+- Multi-user auth — replaced by Phase 3 (AUTH)
+- Plugin system — TBD
+
+#### Notes
+- Target Python 3.11+; do not add Windows support in this phase
+```
+
 ## Field Semantics
 
 | Field | Required | Rules |
@@ -59,7 +84,7 @@ Areas to avoid investing in because a later phase replaces them.
 | Status | Yes | One of: `Not Started`, `In Progress`, `Complete` |
 | Prefix | Yes | Uppercase, 3-5 chars, unique across all phases. Used for ticket IDs |
 | Theme | Yes | One sentence summarizing the phase focus |
-| Goals | Yes | At least one goal with measurable success criteria |
+| Goals | Yes | At least one goal. Each must include a quantitative or testable criterion (metric, pass/fail threshold, or named artifact) |
 | Deliverables | Yes | Checkbox list. pm-agent generates tickets from these. ba-agent checks coverage |
 | Avoid Deepening | No | Guidance for agents about tech debt. Reference which future phase handles it |
 | Notes | No | Constraints, risks, external dependencies |
@@ -67,6 +92,11 @@ Areas to avoid investing in because a later phase replaces them.
 ## Phase Ordering
 
 Phases are numbered sequentially. Phase N MUST be completable using only artifacts from Phases 1..N-1; no forward references or dependencies on future phases are permitted.
+
+## Avoid Deepening Rules
+
+- Each entry names a future phase that replaces the area.
+- If no future phase covers the concern, write `— TBD` and warn the caller. Do not invent a phase.
 
 ## Prefix Rules
 

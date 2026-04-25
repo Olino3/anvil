@@ -56,7 +56,7 @@ The report is written inside the sprint directory it analyzes.
 
 ### Scope Creep
 {Tickets that don't map to any ROADMAP deliverable.}
-- {SPIKE-NNN} — {reason it exists, whether it's justified}
+- {SPIKE-NNN} — {reason and justification status}
 
 ---
 
@@ -87,10 +87,12 @@ The report is written inside the sprint directory it analyzes.
 
 ## Section Rules
 
+Empty-state strings are literal — emit verbatim, do not paraphrase.
+
 | Section | Required | Empty State |
 |---|---|---|
 | Status Distribution | Always | Never empty |
-| Verification Results | Only if any ticket is Done | "No tickets in Done status." |
+| Verification Results | Always | "No tickets in Done status." |
 | Gap Analysis | Always | "All ROADMAP deliverables have ticket coverage. No scope creep detected." |
 | Dependency Issues | Always | "All dependencies are consistent. No circular dependencies." |
 | Actions Taken | Always | "No autonomous actions taken." |
@@ -103,6 +105,7 @@ The report is written inside the sprint directory it analyzes.
 - If a command requires `sudo` or hardware access, mark as SKIPPED with reason
 - If a command fails, record the last 5 lines of stderr+stdout, fenced as a code block in the Issues column
 - Example: `` `ERROR: connection refused` ``
+- If a ticket has multiple verification commands and more than one fails, record only the first failed command's output; append `(+{N} more failures)` when additional commands failed
 - A ticket with ANY failed verification is reported as FAIL — do NOT change its status
 
 ## Ticket List Format
@@ -121,3 +124,9 @@ The report is written inside the sprint directory it analyzes.
 
 - Only record actions the agent is authorized to perform autonomously per ba-agent's policy
 - Actions requiring approval go under Recommendations instead
+
+## Data Sources
+
+- Ticket files under `docs/anvil/sprints/{sprint-directory}/` — source of truth for Status, Depends on, Blocks, Verification Steps
+- `ROADMAP.md` at repo root — source for Gap Analysis (Missing Coverage, Scope Creep)
+- Do not fabricate ticket data or verification commands. Record missing fields as `missing` and surface the gap under Recommendations.

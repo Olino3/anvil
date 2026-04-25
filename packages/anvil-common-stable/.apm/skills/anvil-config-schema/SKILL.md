@@ -30,14 +30,14 @@ Template syntax: `<component-name>` and `<path>` are placeholder tokens (not lit
 
 ## Fields
 
-- **language** — identifier like `python`, `typescript`, `go`, `ruby`. Used by red/green agents to select language-specific test scaffolding and assertion syntax.
+- **language** — identifier, e.g. `python`, `typescript`, `go`, `ruby`. Open-valued string; used only as a signal to agents — not validated against a closed list. Used by red/green agents to select language-specific test scaffolding and assertion syntax.
 - **source_dir** — relative path (from repo root) to where production code lives.
 - **test_dir** — relative path (from repo root) to where tests live.
 - **test_pattern** — glob or pattern that maps a source module to its test file. The `{module}` placeholder is substituted with the module name (file basename without extension). Example: `tests/test_{module}.py` with module `auth` → `tests/test_auth.py`.
 - **test_command** — exact command to run the test suite for this component. Executed from repo root.
 - **build_command** — optional. Executed before tests to ensure compilation/build succeeds.
-- **lint_command** — optional. Executed after GREEN phase to catch style issues.
-- **type_check_command** — optional. Executed after GREEN in typed languages.
+- **lint_command** — optional. Executed after the test suite passes to catch style issues.
+- **type_check_command** — optional. Executed after the test suite passes in typed languages.
 
 ## Example
 
@@ -79,8 +79,12 @@ If a component name is missing or a required field is absent:
 - Or: `component '<name>' missing required field '<field>'; found: [<fields>]`
 - Halt and request the agent provide or correct the config.
 
-## Rules
+## Validation
 
-- Every ticket's `Component:` field must exactly match a key in this file. If it does not, red/green agents will fail to pick commands.
-- Commands are run as-is by the agent; they are not modified or compiled. Keep them shell-executable and testable from the repo root.
-- Relative paths must be relative to repo root unless a command explicitly changes directory.
+- Every ticket's `Component:` field must exactly match a key in `components`. If it does not, halt per `On Validation Failure` — do not guess or default.
+
+## Execution
+
+- Commands must be executable exactly as written from the repository root unless otherwise documented; they are not modified or compiled.
+- Relative paths are relative to repo root unless a command explicitly changes directory.
+- If an optional command field (`build_command`, `lint_command`, `type_check_command`) is absent, skip that step silently. Never infer or fabricate a default command.
