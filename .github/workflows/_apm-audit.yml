@@ -1,0 +1,242 @@
+name: _apm-audit
+
+on:
+  workflow_call:
+    inputs:
+      trigger:
+        description: 'pr or release'
+        required: true
+        type: string
+      pr_number:
+        description: 'PR number (for PR trigger)'
+        required: false
+        type: string
+        default: ''
+      base_ref:
+        description: 'Base ref/SHA for diff'
+        required: false
+        type: string
+        default: ''
+      head_ref:
+        description: 'Head ref/SHA for diff'
+        required: false
+        type: string
+        default: ''
+
+env:
+  # Single source of truth for the audited model list.
+  # Add a new model = append one string to this JSON array.
+  AUDIT_MODELS: '["gpt-5.4","gpt-5.5","claude-opus-4.7","claude-sonnet-4.6","claude-haiku-4.5"]'
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changed.outputs.matrix }}
+      file_count: ${{ steps.changed.outputs.file_count }}
+      skip: ${{ steps.changed.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find changed .apm files
+        id: changed
+        env:
+          TRIGGER: ${{ inputs.trigger }}
+          BASE_REF: ${{ inputs.base_ref }}
+          HEAD_REF: ${{ inputs.head_ref }}
+          MODELS_JSON: ${{ env.AUDIT_MODELS }}
+        run: |
+          set -euo pipefail
+
+          FILES=""
+          if [ -n "$BASE_REF" ] && [ -n "$HEAD_REF" ]; then
+            FILES=$(git diff --name-only "$BASE_REF" "$HEAD_REF" \
+              | grep -E 'packages/[^/]+/\.apm/' || true)
+          fi
+
+          if [ -z "$FILES" ] && [ "$TRIGGER" = "release" ]; then
+            FILES=$(find packages -path '*/.apm/*' -type f | sort)
+          fi
+
+          if [ -z "$FILES" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No .apm files to audit."
+            exit 0
+          fi
+
+          export FILES MODELS_JSON
+          MATRIX=$(python3 -c "
+          import json, os
+          files = os.environ['FILES'].strip().split('\n')
+          models = json.loads(os.environ['MODELS_JSON'])
+          matrix = [{'file': f, 'model': m} for f in files if f for m in models]
+          print(json.dumps({'include': matrix}))
+          ")
+
+          {
+            echo "matrix=$MATRIX"
+            echo "file_count=$(printf '%s\n' "$FILES" | wc -l)"
+            echo "skip=false"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Audit matrix files:"
+          printf '%s\n' "$FILES"
+
+  audit:
+    needs: detect
+    if: needs.detect.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 25
+      matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify copilot CLI
+        run: |
+          if ! command -v copilot >/dev/null 2>&1; then
+            echo "::error::copilot CLI not available on runner"
+            exit 1
+          fi
+          copilot --version || true
+
+      - name: Run audit
+        id: scores
+        env:
+          FILE: ${{ matrix.file }}
+          MODEL: ${{ matrix.model }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "$FILE" ]; then
+            echo "File no longer exists: $FILE — recording N/A"
+            echo "result=${FILE}|${MODEL}|N/A|N/A|N/A|N/A" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CONTENT=$(cat "$FILE")
+          PKGNAME=$(echo "$FILE" | cut -d/ -f2)
+          FNAME=$(echo "$FILE" | sed 's|^packages/[^/]*/\.apm/||')
+
+          PROMPT=$(cat <<EOF
+          You are an expert AI Agent Architect and Prompt Engineer auditing agentic instruction files.
+
+          Review the file content below and score it 1-10 on each axis. Output ONLY these four lines and nothing else:
+          Clarity: <integer 1-10>
+          Length: <integer 1-10>
+          Tone: <integer 1-10>
+          Action: <integer 1-10>
+
+          Rubric:
+          - Clarity: Is the core objective immediately obvious? Are edge cases unambiguous?
+          - Length: Token efficiency. 10 = perfectly optimized density.
+          - Tone: Objective, precise, declarative — appropriate for an automated agent?
+          - Action: Are operational triggers, tool calls, and output format strict and unambiguous?
+
+          Package: ${PKGNAME}
+          File: ${FNAME}
+
+          ---
+          ${CONTENT}
+          EOF
+          )
+
+          OUTPUT=$(copilot --model "$MODEL" --allow-all -p "$PROMPT" 2>&1 || true)
+
+          C=$(echo "$OUTPUT" | grep -oP 'Clarity:\s*\K[0-9]+' | head -1 || true)
+          L=$(echo "$OUTPUT" | grep -oP 'Length:\s*\K[0-9]+' | head -1 || true)
+          T=$(echo "$OUTPUT" | grep -oP 'Tone:\s*\K[0-9]+' | head -1 || true)
+          A=$(echo "$OUTPUT" | grep -oP 'Action:\s*\K[0-9]+' | head -1 || true)
+
+          echo "result=${FILE}|${MODEL}|${C:-N/A}|${L:-N/A}|${T:-N/A}|${A:-N/A}" >> "$GITHUB_OUTPUT"
+
+      - name: Save result artifact
+        if: always()
+        env:
+          RESULT: ${{ steps.scores.outputs.result }}
+          FILE: ${{ matrix.file }}
+          MODEL: ${{ matrix.model }}
+        run: |
+          set -euo pipefail
+          mkdir -p audit-results
+          SAFE=$(printf '%s__%s' "$FILE" "$MODEL" | tr '/.' '--')
+          if [ -z "${RESULT:-}" ]; then
+            RESULT="${FILE}|${MODEL}|N/A|N/A|N/A|N/A"
+          fi
+          printf '%s\n' "$RESULT" > "audit-results/${SAFE}.txt"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-${{ strategy.job-index }}
+          path: audit-results/
+          if-no-files-found: warn
+          retention-days: 7
+
+  report:
+    needs: [detect, audit]
+    if: always() && needs.detect.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all audit artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: audit-*
+          path: all-audit-results
+          merge-multiple: true
+
+      - name: Render report
+        run: |
+          python3 .github/scripts/render-audit-report.py all-audit-results/ > report.md
+          echo "--- report.md ---"
+          cat report.md
+
+      - name: Post PR comment
+        if: inputs.trigger == 'pr' && inputs.pr_number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          MARKER="<!-- apm-audit-report -->"
+          { printf '%s\n' "$MARKER"; cat report.md; } > body.md
+
+          EXISTING_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" \
+            | head -1 || true)
+
+          if [ -n "$EXISTING_ID" ]; then
+            gh api --method PATCH \
+              "repos/${REPO}/issues/comments/${EXISTING_ID}" \
+              -F body=@body.md >/dev/null
+            echo "Updated existing comment $EXISTING_ID"
+          else
+            gh pr comment "$PR_NUMBER" --body-file body.md --repo "$REPO"
+            echo "Posted new comment"
+          fi
+
+      - name: Update release notes
+        if: inputs.trigger == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            CURRENT=$(gh release view "$TAG" --repo "$REPO" --json body --jq '.body' || echo "")
+            { printf '%s\n\n---\n\n' "$CURRENT"; cat report.md; } > new-notes.md
+            gh release edit "$TAG" --repo "$REPO" --notes-file new-notes.md
+            echo "Appended audit report to release $TAG"
+          else
+            echo "Release $TAG not yet created — skipping notes update"
+          fi
