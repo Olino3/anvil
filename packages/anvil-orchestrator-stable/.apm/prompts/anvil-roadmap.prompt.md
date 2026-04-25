@@ -1,75 +1,113 @@
 ---
-description: Create or update ROADMAP.md via flat @pd dispatch, then optionally inline the sprint workflow for the current phase. No nested sub-agent dispatch.
+description: Create or update ROADMAP.md via flat @pd dispatch, then optionally inline the sprint workflow for the current roadmap phase. No nested sub-agent dispatch.
 input: []
 ---
 
-# Anvil Roadmap — Orchestrated (Flattened)
+# Anvil Roadmap — Orchestrated
 
 You are the main session. Run the roadmap conversation via a flat `@pd`
-sub-agent dispatch, then offer a single handoff: inline the sprint
-workflow for the current phase, or stop. No nested sub-agent dispatch.
+sub-agent dispatch, then offer one handoff: inline the orchestrator
+sprint workflow for the current phase, or stop.
+
+> **Naming convention.** "Stage" refers to a step of THIS workflow
+> (Stage 0–3). "Phase" refers to a roadmap phase inside `ROADMAP.md`
+> (Phase 1, Phase 2, …). Do not conflate them.
+
+## Execution Rules
+
+- All sub-agent dispatches originate from this main session. No nested
+  delegation.
+- Skill loading is not a substitute for Task-tool dispatch. Do NOT load
+  `anvil-roadmap` in place of the `@pd` dispatch.
+- The inlined sprint workflow runs synchronously in this session;
+  suppress any further roadmap or handoff offers it contains.
+- One roadmap conversation, one optional sprint kickoff per run.
 
 ## Procedure
 
-### Phase 0 — Check config
+### Stage 0 — Check config
 
-1. **Verify config.** Read `docs/anvil/config.yml`. If it doesn't exist,
-   instruct the user to run `/anvil-init` first and stop.
+1. **Verify config.** Read `docs/anvil/config.yml`. If missing, halt
+   with: `Config missing. Run /anvil-init first.`
 
-### Phase 1 — Roadmap conversation (flat sub-agent dispatch)
+### Stage 1 — Roadmap conversation (flat sub-agent dispatch)
 
-2. **Check for existing ROADMAP.md.** Note whether this is a create or
-   update.
+2. **Determine operation.** If `ROADMAP.md` exists at the project root,
+   set `operation = update` and capture its contents. Otherwise set
+   `operation = create`.
 
-3. **Dispatch the `pd` sub-agent.** Use the Task tool with
-   `subagent_type: "pd"` and a prompt such as
-   `"Run the pd.agent workflow. {Create | Update} ROADMAP.md at the
-   project root through conversation with the user, using roadmap-format
-   as the target structure. Pass existing ROADMAP.md contents if any."`
-   Flat dispatch from the main session.
+3. **Dispatch the `pd` sub-agent.** Use the platform Task tool with
+   `subagent_type: "pd"` using exactly this prompt template:
+
+   ```text
+   Run the pd.agent workflow. Operation: {operation}. Use roadmap-format
+   (from anvil-common-stable) as the target structure for ROADMAP.md at
+   the project root. If operation is update, the existing ROADMAP.md
+   contents follow this prompt; preserve unchecked deliverables unless
+   the user explicitly requests removal.
+   ```
+
+   Expected return: confirmation that `ROADMAP.md` was written, or an
+   explicit error.
+
+   **Failure paths:**
+   - If `@pd` returns an error or no output → halt. Report the failure
+     to the user and do not write `ROADMAP.md` directly. Do not
+     re-invoke `@pd`.
+   - If `ROADMAP.md` exists but `git diff --name-only` shows no changes
+     after `@pd` returns → skip the commit, output `No changes
+     detected.` and continue to Stage 2.
 
 4. **Commit the roadmap.**
-   - If new: `git commit -m "docs(roadmap): create project roadmap"`
-   - If updated: `git commit -m "docs(roadmap): update roadmap phases"`
+   - On `create`: `git commit -m "docs(roadmap): create project roadmap"`
+   - On `update`: `git commit -m "docs(roadmap): update roadmap phases"`
 
-### Phase 2 — Report + handoff offer
+### Stage 2 — Report + handoff offer
 
-5. **Identify the current phase.** The first phase in `ROADMAP.md` not
-   marked `Complete`. Print its name and prefix.
+5. **Identify the current roadmap phase.** Scan `ROADMAP.md` for the
+   first `## Phase N` heading whose body does not contain a `Status:
+   Complete` line.
 
-6. **Offer the sprint handoff.** Ask:
-   > *"Kick off a sprint for phase `<current-phase>` now?"*
+   - If all phases are `Status: Complete`, output `All roadmap phases
+     are Complete.` and stop. Do not offer the sprint handoff.
+   - Otherwise capture `<current-phase>` (the matching phase name and
+     prefix) and continue.
 
-### Phase 3 — Optional sprint handoff (inline, flattened)
+6. **Prompt the user with this exact question:**
 
-7. **If yes:** inline the full workflow from
-   `anvil-sprint.prompt.md` (orchestrator version, from this package) in
-   your current context, with `phase = <current-phase>`. Any sub-agent
-   dispatches in that workflow — `pm`, and transitively the develop
-   workflow's `dev-plan` / `red` / `green` if the user also accepts
-   sprint's one-ticket handoff — all happen from this same main session
-   as flat dispatches.
+   ```
+   Kick off a sprint for phase <current-phase> now? (yes/no)
+   ```
 
-   Stop after the inlined workflow completes.
+### Stage 3 — Optional sprint handoff (inline)
 
-8. **If no:** stop. Print the recommended next command:
-   `/anvil-sprint <current-phase>`.
+7. **If yes:** Inline the full workflow from
+   `packages/anvil-orchestrator-stable/.apm/prompts/anvil-sprint.prompt.md`
+   in this session, with `${input:phase} = <current-phase>`. All
+   sub-agent dispatches inside that workflow run flat from this same
+   main session:
 
-## Constraints
+   - The `pm` dispatch originates here.
+   - If the user accepts the sprint's one-ticket handoff, the
+     `dev-plan`, `red`, and `green` dispatches also originate here.
 
-- **No nested sub-agent dispatch.** The `pd` dispatch in Phase 1 and any
-  dispatches from the inlined sprint workflow all originate from this
-  main session.
-- **Single handoff only.** One roadmap conversation, one optional sprint
-  kickoff. Do not chain further initiations.
-- **Handoff is inline workflow execution**, not a sub-agent call.
-- **Skill loading is not a substitute for sub-agent dispatch.** Do NOT
-  load `anvil-roadmap` in place of the Task-tool `pd` dispatch.
+   When inlining the sprint workflow, suppress any further handoff
+   offers it contains. Stop after the inlined workflow completes.
 
-## On completion
+8. **If no:** Stop. Output:
 
-Report:
-- What changed in `ROADMAP.md` (new phases, status updates, scope
-  adjustments)
-- Whether the sprint handoff ran (and its outcome if so)
-- Next-step guidance
+   ```
+   Recommended next command: /anvil-sprint <current-phase>
+   ```
+
+## Completion report
+
+Emit at workflow end using this template:
+
+```
+## Roadmap complete
+- ROADMAP.md: {created | updated | unchanged}
+- Phases changed: {comma-separated names, or "none"}
+- Sprint handoff: {ran (with outcome summary) | declined | not offered}
+- Next: {next-step guidance}
+```
