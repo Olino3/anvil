@@ -1,64 +1,87 @@
 ---
 name: anvil-roadmap
-description: Create or update ROADMAP.md via flat @pd dispatch, then optionally inline the sprint workflow for the current phase. Main session drives; no nested sub-agent dispatch.
+description: Use when starting roadmap-driven phase planning in an Anvil project. Creates or updates ROADMAP.md via @pd, then optionally inlines the sprint workflow for the current roadmap phase. All sub-agent dispatch from the main session.
 user-invocable: true
 ---
 
-# Anvil Roadmap — Orchestrated (Flattened)
+# Anvil Roadmap — Flattened (Main-Session Driven)
 
 ## Invocation
 
 - Slash command: `/anvil-roadmap`
 - APM runtime: `apm run anvil-roadmap`
 
-Create or update `ROADMAP.md`, then optionally inline the flattened sprint
-workflow for the current phase. The **main session** drives the flow;
-there is no orchestrator sub-agent. Claude Code does not support nested
-sub-agent dispatch, so this flattened design is required.
-
 ## Arguments
 
-- None required. The `@pd` sub-agent conducts the conversation.
+- None. The `@pd` sub-agent conducts the conversation with the user.
 
-## Procedure
+## Glossary
 
-The main session executes the workflow documented in
-`anvil-roadmap.prompt.md` (orchestrator override, from this package).
-Summary:
+- **`@pd` dispatch.** A Task-tool call with `subagent_type: "pd"` to
+  the Product Director leaf agent.
+- **Flat dispatch.** A Task-tool call originating from the current
+  main session (not nested inside another sub-agent).
+- **Roadmap phase.** A milestone block inside `ROADMAP.md` (Phase 1,
+  Phase 2, …). The orchestrator workflow's own internal stages are
+  numbered Stage 0–3 in `anvil-roadmap.prompt.md` to avoid collision
+  with these.
 
-1. **Verify config (inline):** read `docs/anvil/config.yml`; if missing,
-   prompt user to run `/anvil-init` first.
-2. **Roadmap conversation (flat sub-agent):** Task tool with
-   `subagent_type: "pd"` conducts the conversation and writes / updates
-   `ROADMAP.md`.
-3. **Commit roadmap (inline).**
-4. **Identify current phase (inline):** the first phase not marked
-   `Complete`.
-5. **Handoff offer (inline):** ask `"Kick off a sprint for <current-phase>
-   now?"`
-6. **If yes:** inline the `anvil-sprint.prompt.md` workflow (orchestrator
-   version) in the current main session, with `phase = <current-phase>`.
-   Transitively, that workflow may inline the develop workflow too if the
-   user accepts sprint's one-ticket handoff — all sub-agent dispatches
-   originate from this same main session as flat dispatches.
-7. **If no:** stop and print the next-step command.
+## Authoritative source
+
+The executable workflow is `anvil-roadmap.prompt.md` (orchestrator
+override, this package). This skill summarizes role and boundaries
+only — read the prompt for full step-by-step procedure.
+
+## Stages
+
+The main session runs the workflow flat from itself.
+
+| # | Stage | Owner | Notes |
+|---|---|---|---|
+| 1 | Verify config | main session | **Read** `docs/anvil/config.yml`. If absent, halt and emit `Config missing. Run /anvil-init first.` Do not proceed. |
+| 2 | Roadmap conversation | `@pd` (Task) | Writes / updates `ROADMAP.md` via conversation with the user. |
+| 3 | Commit | main session | `git commit -m "docs(roadmap): create project roadmap"` (new) or `... update roadmap phases"` (update). Skip the commit if `git diff --name-only` shows no changes. |
+| 4 | Identify current phase | main session | First `## Phase N` heading in `ROADMAP.md` whose body lacks `Status: Complete`. If all phases are Complete, emit `All roadmap phases are Complete.` and stop without offering the handoff. |
+| 5 | Handoff offer | main session | Prompt the user with the literal string: `Kick off a sprint for <current-phase> now? (yes/no)` Accept only `yes` / `y` (case-insensitive). |
+| 6a | If yes | main session (inline) | Inline-execute `anvil-sprint.prompt.md` (orchestrator version, this package) with `${input:phase} = <current-phase>`. |
+| 6b | If no | main session | Stop. Output the recommended next command: `/anvil-sprint <current-phase>`. |
+| 6c | Inline failure handling | main session | If the inlined sprint workflow halts or the user cancels, surface the failure and stop. Do not retry. |
+
+## Sub-agent dispatch shape
+
+```
+Task(subagent_type="pd", prompt="<pd template from prompt file>")
+```
+
+The exact prompt template lives in `anvil-roadmap.prompt.md`; pass it
+verbatim. If `@pd` returns an error or no output, halt — do NOT write
+`ROADMAP.md` directly.
 
 ## Constraints
 
-- **No orchestrator sub-agent.** The orchestration lives in the main
-  session. This package formerly shipped a `roadmap-orchestrator.agent.md`;
-  that was removed because of Claude Code's no-nested-dispatch limit.
-- **Flat sub-agent dispatches only.** `pd` dispatch in step 2, and any
-  dispatches from inlined sprint / develop workflows, all originate from
-  this main session.
-- **Single handoff only.** One roadmap conversation, one optional sprint
-  kickoff. Do not chain further initiations.
+- **No orchestrator sub-agent.** Orchestration lives in the main
+  session — sub-agents cannot themselves dispatch further sub-agents
+  on Claude Code.
+- **Flat sub-agent dispatches only.** The `@pd` dispatch in Stage 2,
+  and any dispatches from the inlined sprint / develop workflows, all
+  originate from this same main session.
+- **Single handoff only.** One roadmap conversation, one optional
+  sprint kickoff per run. When inlining the sprint workflow, suppress
+  any further handoff offers it contains.
 - **Handoff is inline workflow execution**, not a sub-agent call.
 
 ## On completion
 
-Report:
-- What changed in `ROADMAP.md` (new phases, status updates, scope
-  adjustments)
-- Whether the sprint handoff ran (and its outcome if so)
-- Next-step guidance
+Output three sections:
+
+```
+### ROADMAP.md changes
+- {created | updated | unchanged}
+- Phases changed: {comma-separated names, or "none"}
+
+### Sprint handoff
+- {ran (with outcome summary) | declined | not offered (all phases Complete)}
+
+### Next steps
+- {next-step guidance}
+```

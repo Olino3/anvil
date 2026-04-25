@@ -1,6 +1,6 @@
 ---
 name: anvil-develop
-description: Automated one-ticket TDD loop (flattened). Main session drives plan → RED → GREEN → optional REFACTOR → verification → integration-choice. Sub-agents dispatched flat, one at a time.
+description: Use when developing one sprint ticket end-to-end. Drives plan → RED → GREEN → optional REFACTOR → verify → integration choice from the main session. Sub-agents (`dev-plan`, `red`, `green`) dispatched flat, one approval gate after the plan.
 user-invocable: true
 ---
 
@@ -11,74 +11,79 @@ user-invocable: true
 - Slash command: `/anvil-develop <ticket-id>`
 - APM runtime: `apm run anvil-develop --param ticket=<ticket-id>`
 
-Run the full one-ticket TDD inner loop for a sprint ticket. The **main
-session** drives the flow; there is no orchestrator sub-agent. Sub-agents
-(`dev-plan`, `red`, `green`) are dispatched flat — one at a time, from
-the main session only. Claude Code does not support nested sub-agent
-dispatch, so this flattened design is required.
-
-The main session owns the approval gate. Leaf sub-agents produce
-artifacts and return; they do not end the workflow. The main session
-continues from phase to phase until the integration choice.
-
 ## Arguments
 
 - `ticket-id` (required) — the ticket to develop (e.g., `MVP-001`,
-  `AUTH-003`, `SPIKE-002`)
+  `AUTH-003`, `SPIKE-002`).
 
-## Procedure
+## Authoritative source
 
-The main session executes the workflow documented in
-`anvil-develop.prompt.md` (orchestrator override, from this package).
-Summary:
+The executable workflow is `anvil-develop.prompt.md` (orchestrator
+override, this package). This skill summarizes role and boundaries
+only — read the prompt for full step-by-step procedure.
 
-1. **Prep (inline):** locate ticket, verify config, read sprint context,
-   verify branch, auto-create worktree per `worktree-discipline`.
-2. **Plan (flat sub-agent):** Task tool with `subagent_type: "dev-plan"`
-   produces and returns the RED/GREEN/REFACTOR plan. The main session
-   relays the plan to the user for approval; on approval the main session
-   continues to RED. On "needs changes," the main session re-dispatches
-   `dev-plan` with the redirection.
+## Phases
 
-   Do NOT use `dev-discipline` here — that is core's plan-and-stop agent,
-   which ends the interaction on return. `dev-plan` is orchestrator's
-   plan-and-return agent that hands flow control back to the main session.
-3. **RED (flat sub-agent):** on approval, Task tool with
-   `subagent_type: "red"` writes the failing test suite and commits.
-4. **GREEN (flat sub-agent):** Task tool with `subagent_type: "green"`
-   writes minimum production code and commits.
-5. **REFACTOR (inline):** main session does the cleanup directly if
-   warranted; no sub-agent.
-6. **Verify (inline):** main session runs the ticket's Verification
-   Steps.
-7. **Close (inline):** main session updates ticket Status → Done and
-   rebuilds sprint README fields.
-8. **Integration choice (inline):** main session presents the
-   five-option matrix from `worktree-discipline` and executes the chosen
-   option.
+The main session runs the workflow flat from itself. Each row names
+who owns the step.
+
+| # | Phase | Owner | Notes |
+|---|---|---|---|
+| 1 | Prep | main session | Locate ticket, verify config, read sprint context, verify branch, auto-create worktree per `worktree-discipline`. |
+| 2 | Plan | `dev-plan` (Task) | Returns RED/GREEN/REFACTOR plan to the main session. |
+| 2a | Approval gate | main session | Relays plan; accepts `yes` / `y` / `proceed` / `approve`. On `needs changes: ...`, re-dispatches `dev-plan` with the redirection. Loop guard: 3 cycles. |
+| 3 | RED | `red` (Task) | Writes failing test suite, commits with `test(...)` subject. |
+| 4 | GREEN | `green` (Task) | Writes minimum production code, commits with `feat(...)` or `fix(...)` subject. |
+| 5 | REFACTOR | main session (inline) | Triggered ONLY when GREEN introduces duplication ≥3 lines, an oversized function, an unclear name, or a leaky abstraction. Otherwise emit `No refactor needed.` and skip. |
+| 6 | Verify | main session (inline) | Runs the ticket's `Verification Steps` section. If absent, emit `No verification steps defined; skipping.` |
+| 7 | Close | main session (inline) | Sets ticket `Status: Done`, ticks satisfied acceptance criteria, updates sprint README. |
+| 8 | Integration choice | main session (inline) | Presents the matrix: **squash merge / merge / open PR / keep worktree / discard**. Executes the chosen option per `worktree-discipline`. |
+
+## Sub-agent dispatch shape
+
+All Task-tool calls originate from the main session:
+
+```
+Task(subagent_type="dev-plan", prompt="<dev-plan template from prompt file>")
+Task(subagent_type="red",      prompt="<red template from prompt file>")
+Task(subagent_type="green",    prompt="<green template from prompt file>")
+```
+
+The exact prompt templates live in `anvil-develop.prompt.md`; pass them
+verbatim to prevent prompt drift.
+
+## Failure contract
+
+If a sub-agent returns without its expected artifact, halt and report
+to the user. Do not retry, do not invent the artifact.
+
+| Sub-agent | Expected artifact |
+|---|---|
+| `dev-plan` | Structured plan markdown, OR Blocked Plan template |
+| `red` | New commit whose subject begins with `test(` |
+| `green` | New commit whose subject begins with `feat(` or `fix(` |
 
 ## Constraints
 
-- **No orchestrator sub-agent.** The orchestration lives in the main
-  session. This package formerly shipped a `develop-orchestrator.agent.md`;
-  that was removed because sub-agents cannot themselves dispatch further
-  sub-agents on Claude Code.
-- **Flat sub-agent dispatches only.** All Task-tool calls originate from
-  the main session. `dev-plan`, `red`, and `green` are leaf agents — they
-  do not dispatch further.
+- **CRITICAL: use `dev-plan`, NOT `dev-discipline`.** `dev-discipline`
+  is core's plan-and-stop agent — it ends the interaction on return.
+  `dev-plan` is the orchestrator's plan-and-return leaf agent that
+  hands flow control back to the main session.
+- **No orchestrator sub-agent.** Orchestration lives in the main
+  session — sub-agents cannot themselves dispatch further sub-agents
+  on Claude Code.
+- **Flat sub-agent dispatches only.** `dev-plan`, `red`, and `green`
+  are leaf agents.
 - **The main session owns flow control.** Sub-agent return is not
-  workflow end. The main session continues through all phases.
-- **One approval gate.** Plan-approval is the only required user
-  interaction until the integration-choice at the end.
+  workflow end. Continue through every phase until Phase 8.
+- **One required approval gate** — Phase 2a. Phase 8 is the second
+  user-interaction point.
 - **Skill loading is not a substitute for sub-agent dispatch.** Do NOT
   load `anvil-red` / `anvil-green` skills in place of the Task-tool
-  dispatch — the sub-agents have their own isolated context and their
-  agent prompts must execute faithfully.
+  dispatch — sub-agents have isolated context and their agent prompts
+  must execute faithfully.
 
 ## On completion
 
-Report:
-- Commits created (test, feat/fix, optional refactor)
-- Files modified
-- Integration choice executed (squash / merge / PR / keep / discard)
-- Whether any SPIKE tickets were created
+Report: commit subjects (test, feat/fix, optional refactor), files
+modified, integration choice executed, and any SPIKE tickets created.

@@ -1,68 +1,89 @@
 ---
 name: anvil-review
-description: Sprint health + verification via flat @ba dispatch, then apply recommended cleanup with one all-or-nothing approval, then flat @sprint-syncer dispatch. Main session drives; no nested sub-agent dispatch.
+description: Use when reviewing sprint health and applying recommended cleanup. Dispatches @ba, presents recommendations under one all-or-nothing approval gate, applies edits inline, then dispatches @sprint-syncer. All sub-agent dispatch from the main session.
 user-invocable: true
 ---
 
-# Anvil Review — Orchestrated (Flattened)
+# Anvil Review — Flattened (Main-Session Driven)
 
 ## Invocation
 
 - Slash command: `/anvil-review <phase>`
 - APM runtime: `apm run anvil-review --param phase=<phase>`
 
-Run sprint health analysis, present recommendations with an all-or-nothing
-approval gate, apply approved actions inline, then rebuild the sprint
-README. The **main session** drives the flow; there is no orchestrator
-sub-agent. Claude Code does not support nested sub-agent dispatch, so
-this flattened design is required.
-
 ## Arguments
 
-- `phase` (required) — the target sprint by phase name, version, or
-  prefix
+- `phase` (required, string) — sprint identifier matched against
+  directory names under `docs/anvil/sprints/`. Resolution precedence
+  (case-insensitive): exact name > version prefix > slug prefix. On a
+  tie, halt and list candidates.
 
-## Procedure
+## Authoritative source
 
-The main session executes the workflow documented in
-`anvil-review.prompt.md` (orchestrator override, from this package).
-Summary:
+The executable workflow is `anvil-review.prompt.md` (orchestrator
+override, this package). Read that file for the full step-by-step
+procedure. This skill summarizes role and boundaries only.
 
-1. **Locate sprint (inline).**
-2. **BA analysis (flat sub-agent):** Task tool with `subagent_type: "ba"`
-   writes `BA-REPORT.md` with a "Recommended actions" section.
-3. **Read and present recommendations (inline):** main session groups
-   recommendations by action type (splits, archival, dependency healing,
-   status corrections).
-4. **Single approval gate (inline):** ask `"Apply all recommended
-   actions? (y/N)"`.
-5. **Apply (inline, on approval only):** main session edits ticket files
-   directly using `ticket-template` and `sprint-readme-format` as
-   structural references.
-6. **Sync README (flat sub-agent, only if Phase 5 ran):** Task tool with
-   `subagent_type: "sprint-syncer"` rebuilds the sprint README from the
-   updated ticket files.
-7. **If user declined at step 4:** print
-   `BA-REPORT.md written; no actions applied.` and stop.
+## Steps
+
+The main session runs the workflow flat from itself. Steps are
+numbered to avoid collision with the `phase` argument.
+
+| # | Step | Owner | Notes |
+|---|---|---|---|
+| 1 | Locate sprint | main session | Resolve `<phase>` per the precedence rules; halt with the available sprint list on no match. |
+| 2 | BA analysis | `@ba` (Task) | Writes `BA-REPORT.md` in the sprint directory ending with the literal heading `## Recommended actions`. Overwrites any existing report. |
+| 3 | Read recommendations | main session | **Read** `BA-REPORT.md`; halt if the report is missing or the heading is absent/empty. |
+| 4 | Present | main session | Group recommendations under literal headings: **Ticket splits**, **Archival**, **Dependency healing**, **Status corrections**. Empty groups print `None.` |
+| 5 | Approval gate | main session | Present approval gate with the literal string: `Apply all recommended actions? (y/N)` Accept only `y` / `yes` (case-insensitive). |
+| 6 | Apply (on approval) | main session (inline) | Edit ticket files directly using `ticket-template` and `sprint-readme-format` (from `anvil-common-stable`). Apply order: splits → archival → dependency healing → status corrections. Halt the Apply step on the first action that fails or conflicts. |
+| 6b | Sync README | `@sprint-syncer` (Task) | Dispatched only if step 6 modified at least one file (verify with `git status --porcelain`). Rebuilds the sprint `README.md` tickets table, dependency graph, and status summary. |
+| 7 | If user declined | main session | Output `BA-REPORT.md written; no actions applied.` and stop. |
+
+## Sub-agent dispatch shape
+
+```
+Task(subagent_type="ba",            prompt="<ba template from prompt file>")
+Task(subagent_type="sprint-syncer", prompt="<sprint-syncer template from prompt file>")
+```
+
+The exact prompt templates live in `anvil-review.prompt.md`; pass them
+verbatim.
+
+| Sub-agent | Inputs | Expected artifact |
+|---|---|---|
+| `@ba` | sprint directory path, phase identifier | `{sprint_dir}/BA-REPORT.md` ending with `## Recommended actions` |
+| `@sprint-syncer` | sprint directory path | Updated `{sprint_dir}/README.md`; status derived from ticket files only |
 
 ## Constraints
 
-- **No orchestrator sub-agent.** The orchestration lives in the main
-  session. This package formerly shipped a `review-orchestrator.agent.md`;
-  that was removed because of Claude Code's no-nested-dispatch limit.
-- **Flat sub-agent dispatches only.** Both `ba` and `sprint-syncer`
-  dispatches originate from this main session, one after the other.
+- **No orchestrator sub-agent.** Orchestration lives in the main
+  session.
+- **Flat sub-agent dispatches only.** Both `@ba` and
+  `@sprint-syncer` dispatches originate from this main session.
 - **All-or-nothing approval.** No partial application in v2.0.0.
-- **Never auto-downgrade a Done ticket.** If BA reports a Done ticket's
-  verification failed, flag it loudly but do not change Status.
-- **Apply phase is inline.** Main session edits files directly.
+- **Never auto-downgrade a Done ticket.** If `@ba` reports a Done
+  ticket whose verification failed, emit a `VERIFICATION-FAILED`
+  warning, list the ticket ID under "Verification failures requiring
+  human attention" in the completion report, and do not modify Status.
+- **Apply step is inline.** The main session edits files directly; no
+  sub-agent.
 - **Skill loading is not a substitute for sub-agent dispatch.** Do NOT
-  load `anvil-review` / `anvil-sync` in place of the Task-tool
-  dispatches.
+  load `anvil-review` or `anvil-sync` skills in place of the
+  Task-tool dispatches.
 
 ## On completion
 
-Report:
-- Path to the generated `BA-REPORT.md`
-- Whether recommendations were applied (with a summary of what changed)
-- Any verification failures that still need human attention
+Output:
+
+```
+### Review
+- BA report: {path to BA-REPORT.md}
+- Approval: {applied | declined}
+- Actions applied: {none | comma-separated by category, e.g. "2 splits, 1 archival"}
+- Files modified: {count} ({comma-separated paths, or "none"})
+- Sprint README rebuilt: {yes | no | not applicable}
+
+### Verification failures requiring human attention
+- {none | comma-separated ticket IDs with one-line reasons}
+```
