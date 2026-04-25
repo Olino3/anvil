@@ -1,57 +1,91 @@
 ---
 name: anvil-roadmap
-description: Create or update the project ROADMAP.md by invoking the pd agent for strategic planning
+description: Create or update ROADMAP.md by delegating strategic planning to the @pd agent
 user-invocable: true
 ---
 
 # Anvil Roadmap
 
+**Goal:** delegate roadmap authoring to the `@pd` agent, then commit the
+result. Do not author ROADMAP.md content directly.
+
 ## Invocation
 
-- Slash command: `/anvil:roadmap`
-- APM runtime: `apm run anvil:roadmap`
+- Slash command: `/anvil-roadmap`
+- APM runtime: `apm run anvil-roadmap`
 - Agent mention: `@pd`
 
-Create or update the project's ROADMAP.md through collaborative planning.
+## Schema reference
 
-## Arguments
-
-- None required. The `@pd` agent will converse with the user to understand what's needed.
+`ROADMAP.md` MUST conform to the `roadmap-format` skill (from
+`anvil-common-stable`). The `@pd` agent owns the content; this skill orchestrates.
 
 ## Procedure
 
-### 1. Verify Config
+### 1. Verify config
 
-Read `docs/anvil/config.yml`. If it doesn't exist:
-> "Anvil isn't configured for this project yet. Run `/anvil:init` first to set up the project config."
+Use **Read** on `docs/anvil/config.yml`. If it does not exist, output
+verbatim:
 
-Stop and wait for the user.
+> Anvil isn't configured for this project yet. Run `/anvil-init` first.
 
-### 2. Check Existing ROADMAP
+Halt. Do not continue.
 
-Check if `ROADMAP.md` exists at the project root. Pass this information to the `@pd` agent.
+### 2. Determine operation
 
-### 3. Invoke pd agent
+Use **Bash** `test -f ROADMAP.md` (or **Read**) at the project root.
 
-Invoke `@pd` (where supported) or run `apm run anvil:roadmap` with:
-- The contents of `docs/anvil/config.yml`
-- The contents of `ROADMAP.md` (if it exists)
-- Whether this is a create or update operation
+- File present → `operation = update`; **Read** the existing contents.
+- File absent → `operation = create`; existing contents are `null`.
 
-The agent will converse with the user and write/update `ROADMAP.md`.
+### 3. Invoke @pd
 
-### 4. Commit
+Pick the invocation path by host capability — do not guess:
 
-After the `@pd` agent completes:
+- If the `Task` tool with `subagent_type=pd` is available → invoke `@pd`.
+- Otherwise → run `apm run anvil-roadmap` via **Bash**.
 
-If new ROADMAP:
-```
-git add ROADMAP.md
-git commit -m "docs(roadmap): create project roadmap"
-```
+Pass the following payload to the agent:
 
-If updated:
-```
-git add ROADMAP.md
-git commit -m "docs(roadmap): update roadmap phases"
-```
+- `config` — full contents of `docs/anvil/config.yml`.
+- `existing_roadmap` — contents of `ROADMAP.md`, or `null`.
+- `operation` — `create` or `update`.
+
+The agent owns all user-facing dialogue and writes/updates `ROADMAP.md`.
+Block until it returns. If both invocation paths fail, report the error and
+halt — do not write `ROADMAP.md` directly.
+
+### 4. Verify and commit
+
+1. Use **Bash** `git diff --name-only` to confirm `ROADMAP.md` was modified
+   (or is newly tracked).
+2. If unchanged, output `No roadmap changes to commit.` and skip to Step 5.
+3. Otherwise stage and commit:
+
+   - On `create`:
+     ```bash
+     git add ROADMAP.md
+     git commit -m "docs(roadmap): create project roadmap"
+     ```
+   - On `update`:
+     ```bash
+     git add ROADMAP.md
+     git commit -m "docs(roadmap): update roadmap phases"
+     ```
+
+### 5. Completion contract
+
+Emit as the final assistant message:
+
+`ROADMAP.md <created|updated|unchanged>. Next: /anvil-sprint <phase>.`
+
+Then stop.
+
+## Failure modes
+
+Halt and report — do not produce a partial roadmap or empty commit:
+
+- `docs/anvil/config.yml` missing (Step 1).
+- Both `@pd` invocation paths unavailable or failed (Step 3).
+- Agent returned with `ROADMAP.md` absent or empty.
+- Git commit failed (rerun guidance: check `git status`, retry).

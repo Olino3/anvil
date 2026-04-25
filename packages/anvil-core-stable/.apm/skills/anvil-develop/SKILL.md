@@ -1,82 +1,130 @@
 ---
 name: anvil-develop
-description: Plan implementation of a single sprint ticket. Locates ticket, verifies dependencies, auto-creates a worktree, invokes dev-discipline for a plan, asks for approval, stops.
+description: Plan a single sprint ticket — locate it, verify dependencies, create a worktree, ask dev-discipline for a plan, halt for approval
 user-invocable: true
 ---
 
 # Anvil Develop — Plan Only
 
+**Goal:** produce an approved RED/GREEN/REFACTOR plan for one ticket and
+stop. This skill never writes code or tests, and never dispatches `@red` or
+`@green`.
+
 ## Invocation
 
-- Slash command: `/anvil:develop <ticket-id>`
-- APM runtime: `apm run anvil:develop --param ticket=<ticket-id>`
-
-Plan implementation of a single sprint ticket. This skill stops after the plan is approved — it does not execute RED, GREEN, or REFACTOR. Those are separate user actions.
+- Slash command: `/anvil-develop <ticket-id>`
+- APM runtime: `apm run anvil-develop --param ticket=<ticket-id>`
 
 ## Arguments
 
-- `ticket-id` (required) — the ticket to plan (e.g., `MVP-001`, `AUTH-003`, `SPIKE-002`)
+- `ticket-id` (required, string) — sprint ticket identifier (matches a
+  filename prefix under `docs/anvil/sprints/`).
 
 ## Procedure
 
-### 1. Locate Ticket
+### 1. Locate ticket
 
-Search `docs/anvil/sprints/` for a file matching `{ticket-id}*.md`. If not found:
-> "Could not find ticket `{ticket-id}` in any sprint directory under `docs/anvil/sprints/`."
+Use **Glob** with pattern `docs/anvil/sprints/**/{ticket-id}*.md`.
 
-If found in multiple sprints (unlikely but possible), ask the user which one.
+- 0 matches → output verbatim: `Could not find ticket {ticket-id} under docs/anvil/sprints/.` Halt.
+- 1 match → continue with that file.
+- 2+ matches → list matches and ask the user to disambiguate. Restart at
+  Step 1 with the clarified ID.
 
-### 2. Verify Config
+### 2. Verify config
 
-Read `docs/anvil/config.yml`. The `dev-discipline` agent needs this for component context.
+Use **Read** on `docs/anvil/config.yml`. If absent, halt and tell the user
+to run `/anvil-init`.
 
-### 3. Read Sprint Context
+### 3. Read sprint context
 
-Read the sprint's `README.md` to understand:
-- Which branch to work on
-- Dependency state of all tickets
-- Current sprint progress
+Use **Read** on the sprint's `README.md` (sibling of the ticket file) to
+extract:
 
-### 4. Verify Branch
+- The sprint's expected git branch.
+- Each ticket's status (used in Step 6 by dev-discipline).
 
-Check that the current git branch matches the sprint's Branch field. If not:
-> "You're on branch `{current}` but this sprint expects `{expected}`. Switch branches first?"
+### 4. Verify branch
 
-### 5. Create Worktree
+Use **Bash** `git rev-parse --abbrev-ref HEAD`. Compare against the sprint's
+expected branch.
 
-Follow the `worktree-discipline` instructions (from `anvil-common-stable`) to create an isolated worktree. The branch scheme is:
+- Match → continue.
+- Mismatch → output verbatim: `On branch {current}, sprint expects {expected}. Switch first.` Halt.
+
+### 5. Create worktree
+
+Follow the `worktree-discipline` instructions (from
+`anvil-common-stable/.apm/instructions/`). Branch and path scheme:
+
+- Sprint branch: strip a leading `feature/` if present.
+- Worktree branch: `feature/{sprint-slug}-{ticket-id}`.
+- Worktree path: `.worktrees/{ticket-id}`.
+
+Example: sprint branch `feature/mvp`, ticket `MVP-001` → worktree branch
+`feature/mvp-MVP-001` at path `.worktrees/MVP-001`.
+
+Ensure `.worktrees/` is in `.gitignore`. Change working directory into the
+worktree before Step 6. Verify postconditions: the worktree path exists and
+the worktree branch is checked out.
+
+Reuse rules:
+
+- Worktree exists with the correct branch → reuse it.
+- Worktree exists with a different branch → halt with a conflict message;
+  do not move it.
+
+### 6. Invoke dev-discipline
+
+Invoke the `dev-discipline` agent. Pass these inputs (so the agent does not
+re-read them):
+
+- `ticket_path` — path to the ticket file from Step 1.
+- `config_path` — `docs/anvil/config.yml`.
+- `sprint_readme_path` — path to the sprint README from Step 3.
+
+Postcondition: the agent returns a structured RED/GREEN/REFACTOR plan and
+halts pending user approval. No code or tests are written. No sub-agents
+are dispatched.
+
+### 7. Approval gate
+
+Halt for the user's response to the agent's `Proceed with this plan?` prompt.
+
+- Accept only `yes`, `y`, `proceed`, or `approve` (case-insensitive) as
+  approval.
+- Anything else → reply `I need explicit approval (yes / proceed). Plan
+  unchanged.` and halt.
+
+### 8. Completion contract
+
+After approval, emit as the final assistant message, exactly:
 
 ```
-feature/{sprint-slug}-{ticket-id}
+Plan approved for {ticket-id} on {worktree-branch}. Next, in order:
+1. /anvil-red {ticket-id}
+2. /anvil-green {ticket-id}
+3. /anvil-refactor {ticket-id}   (optional)
 ```
 
-where `{sprint-slug}` is the sprint branch with any leading `feature/` prefix stripped. Example: sprint branch `feature/mvp`, ticket `MVP-001` → worktree branch `feature/mvp-MVP-001`, worktree path `.worktrees/MVP-001`.
-
-Ensure `.worktrees/` is in `.gitignore`. Change working directory into the worktree before Step 6.
-
-### 6. Invoke dev-discipline agent
-
-Invoke the `dev-discipline` agent to produce a plan. The agent:
-
-1. Reads the ticket
-2. Verifies all dependencies are Done; refuses to proceed otherwise
-3. Produces a RED/GREEN/REFACTOR plan with any ticket-internal ambiguities surfaced
-4. Asks the user: *"Proceed with this plan?"*
-5. Stops after the user responds
-
-No code or tests are written. No sub-agents are dispatched.
-
-### 7. Report Next Steps
-
-After the plan is approved, tell the user to run, in order:
-
-1. `/anvil:red {ticket-id}` — whole-ticket failing test suite
-2. `/anvil:green {ticket-id}` — whole-ticket minimum implementation
-3. Optionally, `/anvil:refactor {ticket-id}` — clean up + integration-choice prompt
-
-`/anvil:refactor` (or `/anvil:green` if the user decides no refactor is warranted) presents the integration-choice matrix from `worktree-discipline` at completion.
+Then stop. Do not invoke `/anvil-red`, `/anvil-green`, or any other skill.
 
 ## Constraints
 
-- **Do not dispatch `@red` or `@green` from this skill.** That is the orchestrator package's job. Core stops at a plan.
-- **Do not modify code or tests.** Planning only.
+- **Plan only.** No code, no tests, no sub-agent dispatch beyond
+  `dev-discipline`.
+- **Stop at the contract.** Integration choices are presented by
+  `/anvil-refactor` (or `/anvil-green` if no refactor is warranted),
+  per `worktree-discipline` — not here.
+
+## Failure modes
+
+Halt and report — do not silently retry:
+
+- Ticket not found (Step 1).
+- Config missing (Step 2).
+- Sprint README missing or unreadable (Step 3).
+- Branch mismatch the user does not resolve (Step 4).
+- Worktree conflict (Step 5).
+- `dev-discipline` agent unavailable or returned without a plan (Step 6).
+- User did not give explicit approval (Step 7).
