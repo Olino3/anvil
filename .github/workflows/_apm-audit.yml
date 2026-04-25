@@ -106,24 +106,39 @@ jobs:
         run: |
           set -euo pipefail
           if command -v copilot >/dev/null 2>&1; then
-            echo "copilot already on PATH"
+            echo "copilot already on PATH at $(command -v copilot)"
           else
             npm install -g @github/copilot 2>&1 | tail -20 || {
               echo "::warning::Failed to install @github/copilot — audit cells will be recorded as N/A"
               exit 0
             }
           fi
-          copilot --version || echo "::warning::copilot --version failed"
+          # Persist npm global bin to PATH for subsequent steps.
+          NPM_BIN="$(npm config get prefix)/bin"
+          echo "$NPM_BIN" >> "$GITHUB_PATH"
+          echo "Persisted $NPM_BIN to GITHUB_PATH"
+          PATH="$NPM_BIN:$PATH" copilot --version || echo "::warning::copilot --version failed"
 
-      - name: Check copilot CLI availability
+      - name: Check copilot CLI availability and auth
         id: copilot_check
+        env:
+          COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: |
-          if command -v copilot >/dev/null 2>&1; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
+          set -uo pipefail
+          if ! command -v copilot >/dev/null 2>&1; then
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::copilot CLI not available — recording N/A for ${{ matrix.file }} @ ${{ matrix.model }}"
+            echo "::warning::copilot CLI not available — recording N/A"
+            exit 0
           fi
+
+          if [ -z "${COPILOT_TOKEN:-}" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::COPILOT_GITHUB_TOKEN secret is not set. The default GITHUB_TOKEN does not grant Copilot CLI access. Add a repo secret named COPILOT_GITHUB_TOKEN containing a PAT from a Copilot-subscribed account to enable audits."
+            exit 0
+          fi
+
+          echo "available=true" >> "$GITHUB_OUTPUT"
+          echo "copilot found at $(command -v copilot); COPILOT_GITHUB_TOKEN secret is present"
 
       - name: Run audit
         id: scores
@@ -131,10 +146,10 @@ jobs:
           FILE: ${{ matrix.file }}
           MODEL: ${{ matrix.model }}
           COPILOT_AVAILABLE: ${{ steps.copilot_check.outputs.available }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
 
           if [ ! -f "$FILE" ]; then
             echo "File no longer exists: $FILE — recording N/A"
@@ -143,7 +158,7 @@ jobs:
           fi
 
           if [ "$COPILOT_AVAILABLE" != "true" ]; then
-            echo "copilot CLI unavailable — recording N/A"
+            echo "copilot CLI unavailable or unauthenticated — recording N/A"
             echo "result=${FILE}|${MODEL}|N/A|N/A|N/A|N/A" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -175,12 +190,31 @@ jobs:
           EOF
           )
 
-          OUTPUT=$(copilot --model "$MODEL" --allow-all -p "$PROMPT" 2>&1 || true)
+          set +e
+          OUTPUT=$(copilot --model "$MODEL" --allow-all -p "$PROMPT" 2>&1)
+          EXIT=$?
+          set -e
+
+          # Diagnostics: surface what copilot returned so future N/A cells self-explain.
+          echo "::group::copilot diagnostics ($MODEL :: $FNAME)"
+          echo "exit_code=$EXIT"
+          echo "output_bytes=$(printf '%s' "$OUTPUT" | wc -c)"
+          echo "--- first 500 chars ---"
+          printf '%s' "$OUTPUT" | head -c 500 || true
+          echo
+          echo "--- last 200 chars ---"
+          printf '%s' "$OUTPUT" | tail -c 200 || true
+          echo
+          echo "::endgroup::"
 
           C=$(echo "$OUTPUT" | grep -oP 'Clarity:\s*\K[0-9]+' | head -1 || true)
           L=$(echo "$OUTPUT" | grep -oP 'Length:\s*\K[0-9]+' | head -1 || true)
           T=$(echo "$OUTPUT" | grep -oP 'Tone:\s*\K[0-9]+' | head -1 || true)
           A=$(echo "$OUTPUT" | grep -oP 'Action:\s*\K[0-9]+' | head -1 || true)
+
+          if [ -z "${C:-}" ] || [ -z "${L:-}" ] || [ -z "${T:-}" ] || [ -z "${A:-}" ]; then
+            echo "::warning::No parseable scores from copilot for $FNAME @ $MODEL (exit=$EXIT). See diagnostics group above."
+          fi
 
           echo "result=${FILE}|${MODEL}|${C:-N/A}|${L:-N/A}|${T:-N/A}|${A:-N/A}" >> "$GITHUB_OUTPUT"
 
