@@ -95,24 +95,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify copilot CLI
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install copilot CLI
+        id: install_copilot
+        continue-on-error: true
         run: |
-          if ! command -v copilot >/dev/null 2>&1; then
-            echo "::error::copilot CLI not available on runner"
-            exit 1
+          set -euo pipefail
+          if command -v copilot >/dev/null 2>&1; then
+            echo "copilot already on PATH"
+          else
+            npm install -g @github/copilot 2>&1 | tail -20 || {
+              echo "::warning::Failed to install @github/copilot — audit cells will be recorded as N/A"
+              exit 0
+            }
           fi
-          copilot --version || true
+          copilot --version || echo "::warning::copilot --version failed"
+
+      - name: Check copilot CLI availability
+        id: copilot_check
+        run: |
+          if command -v copilot >/dev/null 2>&1; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::copilot CLI not available — recording N/A for ${{ matrix.file }} @ ${{ matrix.model }}"
+          fi
 
       - name: Run audit
         id: scores
         env:
           FILE: ${{ matrix.file }}
           MODEL: ${{ matrix.model }}
+          COPILOT_AVAILABLE: ${{ steps.copilot_check.outputs.available }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
           if [ ! -f "$FILE" ]; then
             echo "File no longer exists: $FILE — recording N/A"
+            echo "result=${FILE}|${MODEL}|N/A|N/A|N/A|N/A" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$COPILOT_AVAILABLE" != "true" ]; then
+            echo "copilot CLI unavailable — recording N/A"
             echo "result=${FILE}|${MODEL}|N/A|N/A|N/A|N/A" >> "$GITHUB_OUTPUT"
             exit 0
           fi
