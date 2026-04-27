@@ -5,7 +5,7 @@ author: Olino3
 license: GPL-3.0
 dependencies:
   apm:
-    - Olino3/anvil/packages/anvil-common-stable
+    - Olino3/anvil/packages/anvil-common-stable#feature/v2.0.0-alpha
   mcp: []
 scripts:
   anvil-init: anvil-init.prompt.md
