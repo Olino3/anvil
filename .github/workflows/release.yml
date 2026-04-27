@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'anvil-*-stable-v*.*.*'
+
+jobs:
+  build-plugin-bundles:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [anvil-core-stable, anvil-orchestrator-stable]
+        host: [claude, copilot, cursor, opencode]
+    env:
+      PACKAGE: ${{ matrix.package }}
+      HOST: ${{ matrix.host }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install APM
+        run: curl -sSL https://aka.ms/apm-unix | sh
+
+      - name: Install package deps (for the package being packed)
+        working-directory: packages/${{ matrix.package }}
+        run: apm install
+
+      - name: Build plugin bundle
+        working-directory: packages/${{ matrix.package }}
+        run: apm pack --format plugin --target "$HOST" --archive -o ./build/
+
+      - name: Rename bundle to locked naming convention
+        working-directory: packages/${{ matrix.package }}/build
+        run: |
+          # apm pack produces files like <package-name>-<version>.tar.gz by default;
+          # rename to the spec's locked pattern:
+          #   anvil-<package-name>-<version>-<host>.tar.gz
+          # Since package names already start with anvil-, the result is e.g.:
+          #   anvil-core-stable-2.0.0-claude.tar.gz
+          # See shared/specs/verification-log.md § "Risk #3 (bundle naming)".
+          for f in *.tar.gz; do
+            base=$(basename "$f" .tar.gz)
+            mv "$f" "${base}-${HOST}.tar.gz"
+          done
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package }}-${{ matrix.host }}
+          path: packages/${{ matrix.package }}/build/*.tar.gz
+
+  create-release:
+    needs: build-plugin-bundles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all bundle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./artifacts/**/*.tar.gz
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
+          generate_release_notes: true
+          body: |
+            Anvil is an APM-first marketplace of three packages:
+            `anvil-common-stable` (internal, shipped transitively),
+            `anvil-core-stable` (discipline), and
+            `anvil-orchestrator-stable` (automated inner loop).
+
+            ### Install
+
+            **APM:**
+            ```
+            apm marketplace add Olino3/anvil
+            apm install anvil-orchestrator-stable@anvil   # or anvil-core-stable@anvil
+            ```
+
+            **Claude Code:**
+            ```
+            claude /plugin marketplace add https://github.com/Olino3/anvil.git
+            claude /plugin install anvil-orchestrator-stable
+            ```
+
+            **Pre-built bundles:** download the `.tar.gz` for your package
+            and host (`claude`, `copilot`, `cursor`, `opencode`) from the
+            Assets section below and extract into your project. Eight
+            bundles are attached per release — naming pattern
+            `anvil-<package-name>-<version>-<host>.tar.gz`.
+
+            Coming from v1.x? See the
+            [migration table](https://github.com/Olino3/anvil#upgrading-from-v1x).

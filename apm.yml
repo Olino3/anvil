@@ -1,16 +1,17 @@
-name: anvil
-version: 1.4.0
-description: Language-agnostic agentic sprint development with TDD — ROADMAP planning, sprint tickets, RED/GREEN implementation, and BA verification.
+name: anvil-workspace
+version: 2.0.0
+description: Anvil monorepo — three-package marketplace. Install packages individually via marketplace.json.
+author: Olino3
+license: MIT
 
-# APM (Microsoft Agent Package Manager) compatibility layer.
-#
-# anvil is authored as a Claude Code plugin marketplace; the canonical layout
-# lives under plugins/anvil/ with .claude-plugin/marketplace.json at the repo
-# root. APM's marketplace loader understands Claude Code's marketplace.json
-# format natively, so Copilot CLI, Cursor, OpenCode, and Codex users can
-# install via:
-#
+# This manifest exists for contributors. End users install packages via:
 #   apm marketplace add Olino3/anvil
-#   apm install anvil@anvil-plugins --target {copilot|cursor|opencode|codex}
+#   apm install anvil-core-stable@anvil           # or anvil-orchestrator-stable
 #
-# No .apm/ mirror is needed.
+# The packages/ subdirectories are individual APM packages. See marketplace.json.
+
+dependencies:
+  apm: []
+  mcp: []
+
+scripts: {}

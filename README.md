@@ -1,125 +1,136 @@
 # Anvil
 
-A language-agnostic Claude Code plugin for agentic sprint-driven software development using TDD.
+Language-agnostic plugin marketplace for agentic sprint-driven software
+development using TDD. Authored as [APM](https://microsoft.github.io/apm/)
+packages, compiled to Claude Code, Copilot CLI, Cursor, and OpenCode.
 
-## Overview
+## Two flavors
 
-Anvil provides a structured workflow for software development driven by AI agents:
+**anvil-core-stable** — the discipline. Every step is a slash command or
+`apm run` script; you orchestrate. Choose this if you want maximum control
+and explicit approval at every sub-step.
 
-**pd-agent** creates ROADMAP → **pm-agent** creates sprint → **dev-agent** completes tickets via TDD using **red-agent** and **green-agent** → **ba-agent** reviews sprint health
+**anvil-orchestrator-stable** — automated inner loop. One command, one
+approval, the full RED → GREEN → REFACTOR → integration flow runs. Choose
+this for the closest match to the v1.x Anvil experience.
 
 ## Install
 
-**Claude Code** (primary target):
-
-```bash
-claude /plugin marketplace add https://github.com/Olino3/anvil.git
-claude /plugin install anvil
-```
-
-**Copilot CLI, Cursor, OpenCode, or Codex** (via [Microsoft APM](https://github.com/microsoft/apm)):
+**APM (recommended):**
 
 ```bash
 apm marketplace add Olino3/anvil
-apm install anvil@anvil-plugins --target {copilot|cursor|opencode|codex}
+apm install anvil-core-stable@anvil              # discipline only
+apm install anvil-orchestrator-stable@anvil      # auto-installs core + common
 ```
 
-Or pin a version directly from git:
+**Claude Code:**
 
 ```bash
-apm install Olino3/anvil#v1.4.0 --target <host>
+claude /plugin marketplace add https://github.com/Olino3/anvil.git
+claude /plugin install anvil-core-stable
+# or
+claude /plugin install anvil-orchestrator-stable
 ```
 
-APM deploys content into each host's native directory (`.claude/`, `.github/`, `.cursor/`, `.opencode/`).
+**Pre-built plugin bundles** (no APM required):
 
-### Cross-platform support
-
-Anvil is authored Claude Code-first. The full automated TDD workflow — where `dev-agent` dispatches `red-agent`, `green-agent`, and `ba-agent` as sub-agents — depends on Claude Code's Task-dispatch runtime and runs end-to-end only on Claude Code. On Copilot CLI and Cursor, the same files install as selectable agent personas that a user invokes manually; skills and slash commands work as prompts. The TDD discipline remains the same; the orchestration is manual.
-
-## Quick Start
+Download a `.tar.gz` from the [latest release](https://github.com/Olino3/anvil/releases/latest)
+matching your host (`claude`, `copilot`, `cursor`, `opencode`) and package.
+Extract into your project. Example:
 
 ```bash
-# Set up your project
-/anvil:anvil-init
+curl -LO https://github.com/Olino3/anvil/releases/latest/download/anvil-orchestrator-stable-2.0.0-claude.tar.gz
+tar xzf anvil-orchestrator-stable-2.0.0-claude.tar.gz -C .
+```
 
-# Create a project roadmap
-/anvil:roadmap
+## Upgrading from v1.x
 
-# Generate a sprint from a roadmap phase
-/anvil:sprint MVP
+v2.0.0 is a **hard cut** from the old `anvil` plugin layout. There is no
+automatic upgrade path; re-install under the new names:
 
-# Implement a ticket
-/anvil:develop MVP-001
+| v1.x | v2.0.0 equivalent |
+|---|---|
+| `claude /plugin install anvil` | `claude /plugin install anvil-orchestrator-stable` |
+| `apm install anvil@anvil-plugins` | `apm install anvil-orchestrator-stable@anvil` |
+| (no equivalent in v1.x) | `apm install anvil-core-stable@anvil` |
 
-# Review sprint health
-/anvil:review MVP
+The sprint directory (`docs/anvil/sprints/...`), ROADMAP.md, and config
+(`docs/anvil/config.yml`) formats are unchanged in v2.0.0.
+
+## Quick start
+
+```bash
+/anvil-init                   # detect stack, write config
+/anvil-roadmap                # create ROADMAP.md (pd-agent conversation)
+/anvil-sprint MVP             # break phase into tickets (pm-agent)
+/anvil-develop MVP-001        # implement ticket (behavior depends on installed package)
+/anvil-review MVP             # sprint health + verification
 ```
 
 ## Commands
 
-| Command | Purpose |
-|---|---|
-| `/anvil:anvil-init` | Interactive project setup — detect stack, write config |
-| `/anvil:roadmap` | Create or update ROADMAP.md |
-| `/anvil:sprint <phase>` | Break a ROADMAP phase into sprint tickets |
-| `/anvil:develop <ticket>` | Implement a ticket using TDD |
-| `/anvil:review <phase>` | Sprint health analysis and verification |
-| `/anvil:sync <phase>` | Fix README drift from ticket state |
-| `/anvil:status [phase]` | Quick read-only status summary |
+| Command | anvil-core-stable | anvil-orchestrator-stable |
+|---|---|---|
+| `/anvil-init` | interactive setup | same |
+| `/anvil-roadmap` | pd conversation | pd conversation + optional sprint handoff |
+| `/anvil-sprint <phase>` | pm generates sprint | pm + optional one-ticket handoff |
+| `/anvil-develop <ticket>` | locate + worktree + plan, then stop | full inner loop: plan → RED → GREEN → REFACTOR → integration |
+| `/anvil-red <ticket>` | whole-ticket failing suite | same (from core) |
+| `/anvil-green <ticket>` | whole-ticket minimum code | same (from core) |
+| `/anvil-refactor <ticket>` | self-contained refactor + integration choice | same (from core) |
+| `/anvil-review <phase>` | ba reports; no auto-apply | ba + auto-apply cleanup with approval |
+| `/anvil-sync <phase>` | rebuild sprint README | same (from core) |
+| `/anvil-status [phase]` | read-only summary | same (from core) |
 
-## Workflow
+Slash commands compile from the `anvil-<stage>` script keys in each
+package's `apm.yml`. Hosts (Claude Code, Copilot CLI, Cursor, OpenCode)
+surface them with a dash separator — `/anvil-<stage>` — because their
+slash-command grammar doesn't accept colons. The same scripts are also
+runnable via APM directly: `apm run anvil-<stage> --param ...`.
+
+## `.gitignore` guidance
+
+`apm_modules/` is usually ignored. Add this to `.gitignore`:
 
 ```
-anvil-init → roadmap → sprint → develop (repeat per ticket) → review → iterate
+apm_modules/
+.worktrees/
 ```
 
-1. **Init** — Configure your project's components, test commands, and git conventions
-2. **Roadmap** — Define phased milestones with goals and deliverables
-3. **Sprint** — Break a phase into granular, dependency-ordered tickets
-4. **Develop** — Implement tickets one at a time with TDD (RED → GREEN → REFACTOR)
-5. **Review** — Verify completed work, check ROADMAP coverage, sync artifacts
-
-For the full playbook — greenfield loop, sprint/roadmap course corrections, TDD granularities, drift recovery, and phase lifecycle — see [Workflows.md](Workflows.md).
+Commit `apm_modules/` only if (a) your CI cannot run `apm install`, or
+(b) you have context links between primitives that need to resolve in
+git-indexed files.
 
 ## Agents
 
-| Agent | Role |
-|---|---|
-| pd-agent | Product Director — creates/updates ROADMAP.md |
-| pm-agent | Project Manager — breaks phases into sprint tickets |
-| dev-agent | Developer — implements tickets via TDD sub-agents |
-| red-agent | RED — writes failing tests |
-| green-agent | GREEN — minimum code to pass tests |
-| ba-agent | Business Analyst — sprint health and verification |
-| sprint-syncer-agent | Syncs README status from ticket metadata |
+All Anvil agents are leaf sub-agents dispatched from the main session.
+There are no orchestrator agents — with `anvil-orchestrator-stable`
+installed, the orchestration runs in the main session itself (Claude
+Code does not support nested sub-agent dispatch, so the orchestration is
+flattened).
 
-## Project Artifacts
+| Agent | Source package | Role |
+|---|---|---|
+| `@pd` | core | Product Director — roadmap |
+| `@pm` | core | Project Manager — sprint tickets |
+| `@ba` | core | Business Analyst — sprint health |
+| `@sprint-syncer` | core | Rebuild sprint README |
+| `@red` | core | Whole-ticket failing test suite |
+| `@green` | core | Whole-ticket minimum implementation |
+| `@dev-discipline` | core | Plan and stop (waits for approval; never continues to RED/GREEN) |
+| `@dev-plan` | orchestrator | Plan and return (no flow control; main session owns the approval gate and continues to RED on approval) |
 
-Anvil creates these files in your project:
+## Workflow playbook
 
-```
-project-root/
-├── ROADMAP.md                    # Project roadmap (phases, milestones)
-└── docs/anvil/
-    ├── config.yml                # Project config (components, commands)
-    └── sprints/
-        └── v1.0.0-mvp/           # Sprint directory
-            ├── README.md         # Ticket table, dependencies, progress
-            ├── MVP-001-*.md      # Tickets
-            ├── SPIKE-001-*.md    # Follow-up tickets
-            └── BA-REPORT.md      # Health report
-```
+For the full day-to-day playbook — greenfield loop, course corrections,
+drift recovery, parallel tickets — see
+[`shared/Workflows.md`](shared/Workflows.md).
 
-## Language Support
+## Contributing
 
-Anvil is language-agnostic. It discovers your tech stack during `/anvil:anvil-init` and reads test/build commands from `docs/anvil/config.yml` at runtime. Works with any language that has a test runner.
+See [`shared/CONTRIBUTING.md`](shared/CONTRIBUTING.md).
 
-## TDD Enforcement
+## License
 
-Every ticket is implemented through the RED/GREEN/REFACTOR cycle:
-
-1. **RED** — `red-agent` writes failing tests → commit
-2. **GREEN** — `green-agent` writes minimum code to pass → commit
-3. **REFACTOR** — clean up if needed → commit
-
-Run `/anvil:tdd` for the full discipline reference.
+GPL-3.0 — see [LICENSE](LICENSE).

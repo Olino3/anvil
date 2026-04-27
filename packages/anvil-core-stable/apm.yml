@@ -1,0 +1,21 @@
+name: anvil-core-stable
+version: 2.0.0
+description: Anvil discipline — agents, skills, and parameterized prompts for human-driven sprint TDD. No dispatch.
+author: Olino3
+license: GPL-3.0
+dependencies:
+  apm:
+    - Olino3/anvil/packages/anvil-common-stable#feature/v2.0.0-alpha
+  mcp: []
+scripts:
+  anvil-init: anvil-init.prompt.md
+  anvil-roadmap: anvil-roadmap.prompt.md
+  anvil-sprint: anvil-sprint.prompt.md
+  anvil-plan: anvil-plan-ticket.prompt.md
+  anvil-develop: anvil-develop.prompt.md
+  anvil-red: anvil-red.prompt.md
+  anvil-green: anvil-green.prompt.md
+  anvil-refactor: anvil-refactor.prompt.md
+  anvil-review: anvil-review.prompt.md
+  anvil-sync: anvil-sync.prompt.md
+  anvil-status: anvil-status.prompt.md
