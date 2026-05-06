@@ -1,5 +1,5 @@
 ---
-description: Rebuild a sprint README from its ticket files to fix drift. Read-only with respect to tickets; only the sprint README changes.
+description: Reconcile a sprint README with its ticket files via @sprint-syncer. Rewrites the sprint README and may edit ticket files to add missing reverse `Blocks:` references.
 input:
   - phase: "Phase name, version, or prefix matched case-insensitively against ROADMAP phase IDs and titles"
 ---
@@ -14,8 +14,10 @@ Invoke the `@sprint-syncer` agent for phase `${input:phase}`.
 - **Procedure:** follow the `anvil-sync` skill.
 - **Output structure:** the `sprint-readme-format` skill (from
   anvil-common-stable) is authoritative for the rebuilt `README.md`.
-- **Write scope:** only the sprint `README.md` changes. Ticket files are
-  read-only in this prompt.
+- **Write scope:** the sprint `README.md` is rewritten. Ticket files may
+  also be edited by `@sprint-syncer` to add missing reverse `Blocks:`
+  references when bidirectional dependency drift is detected; no other
+  ticket fields are modified.
 - **Single pass:** do not re-invoke `@sprint-syncer` after it returns.
 
 Report status changes as a bulleted list, one entry per affected ticket:

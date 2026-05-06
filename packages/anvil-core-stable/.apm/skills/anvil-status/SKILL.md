@@ -24,12 +24,18 @@ beyond the summary itself.
 ## Schema reference
 
 Tickets are read from the `ticket-template` schema (from
-`anvil-common-stable`). Status and Dependencies are taken from the YAML
-frontmatter of each ticket file:
+`anvil-common-stable`). Status and dependency fields appear as bold
+markdown header lines at the top of each ticket file (not YAML frontmatter):
 
-- `status:` — one of `Done`, `In Progress`, `Open`, `Blocked`. Anything
-  else is treated as `Open` (and noted in the malformed list, below).
-- `dependencies:` — comma-separated ticket IDs (or omitted/empty for none).
+- `**Status:** {value}` — one of `Open`, `In Progress`, `Done`, `Blocked`.
+  Anything else is treated as `Open` and noted in the malformed list, below.
+- `**Depends on:** {markdown links | _(none)_}` — comma-separated
+  markdown links to dependency tickets. The literal sentinel `_(none)_`
+  means no dependencies. Ticket IDs are extracted from the link text or
+  filename (`^([A-Z]+-\d+)`).
+- `**Blocks:** {markdown links | _(none)_}` — same shape as `Depends on`,
+  in the reverse direction. Read for completeness; not required by this
+  skill's output.
 
 ## Constraints
 
@@ -72,11 +78,14 @@ then **Read** each. Exclude:
 - `BA-REPORT.md`
 - Any other non-ticket file (e.g., `CHANGELOG.md`, `NOTES.md`).
 
-A ticket is identified by a YAML frontmatter block with a `status:` field.
-Files without that field are skipped and noted in the malformed list.
+A ticket is identified by a `**Status:**` bold-markdown header line near
+the top of the file. Files without that line are skipped and noted in
+the malformed list.
 
-For each ticket, extract: ID, title, status (canonical, see schema),
-component, dependencies.
+For each ticket, extract: ID (from filename, `^([A-Z]+-\d+)`), title
+(first `# ` heading), status (canonical, see schema), component
+(`**Component:**` line), dependencies (`**Depends on:**` line, ticket
+IDs parsed from each markdown link).
 
 ### 3. Compute status
 
@@ -86,8 +95,8 @@ For each sprint, compute:
 - **Unblockable**: a ticket whose `status = Blocked` AND every dependency
   has `status = Done`. (Ready to move to `Open` or `In Progress`.)
 - Progress percentage: `Done / Total`, rounded to nearest integer.
-- Malformed tickets: any with missing/unrecognized `status` or unresolved
-  dependency IDs.
+- Malformed tickets: any with missing/unrecognized `**Status:**` line or
+  unresolved `**Depends on:**` ticket IDs.
 
 ### 4. Output
 

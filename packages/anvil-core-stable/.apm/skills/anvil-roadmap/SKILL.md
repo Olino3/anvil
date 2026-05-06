@@ -40,10 +40,17 @@ Use **Bash** `test -f ROADMAP.md` (or **Read**) at the project root.
 
 ### 3. Invoke @pd
 
-Pick the invocation path by host capability — do not guess:
+The `Task` tool with `subagent_type=pd` is required.
 
-- If the `Task` tool with `subagent_type=pd` is available → invoke `@pd`.
-- Otherwise → run `apm run anvil-roadmap` via **Bash**.
+- If available → invoke `@pd`.
+- If unavailable → halt and output verbatim:
+
+  > `@pd` is not available in this host. The `anvil-roadmap` skill requires
+  > Task-based subagent dispatch. Run the host with subagent support, or
+  > invoke the `@pd` agent file directly.
+
+  Do **not** re-enter the `anvil-roadmap` skill (e.g., via `apm run
+  anvil-roadmap`) as a fallback — that would recurse indefinitely.
 
 Pass the following payload to the agent:
 
@@ -52,7 +59,7 @@ Pass the following payload to the agent:
 - `operation` — `create` or `update`.
 
 The agent owns all user-facing dialogue and writes/updates `ROADMAP.md`.
-Block until it returns. If both invocation paths fail, report the error and
+Block until it returns. If invocation fails, report the error and
 halt — do not write `ROADMAP.md` directly.
 
 ### 4. Verify and commit
@@ -86,6 +93,6 @@ Then stop.
 Halt and report — do not produce a partial roadmap or empty commit:
 
 - `docs/anvil/config.yml` missing (Step 1).
-- Both `@pd` invocation paths unavailable or failed (Step 3).
+- `@pd` invocation unavailable or failed (Step 3).
 - Agent returned with `ROADMAP.md` absent or empty.
 - Git commit failed (rerun guidance: check `git status`, retry).

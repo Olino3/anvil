@@ -85,10 +85,17 @@ Example: phase `Auth System` → slug `auth-system` → branch
 
 ### 5. Invoke @pm
 
-Pick the invocation path by host capability:
+The `Task` tool with `subagent_type=pm` is required.
 
-- If the `Task` tool with `subagent_type=pm` is available → invoke `@pm`.
-- Otherwise → run `apm run anvil-sprint --param phase=<phase>` via **Bash**.
+- If available → invoke `@pm`.
+- If unavailable → halt and output verbatim:
+
+  > `@pm` is not available in this host. The `anvil-sprint` skill requires
+  > Task-based subagent dispatch. Run the host with subagent support, or
+  > invoke the `@pm` agent file directly.
+
+  Do **not** re-enter the `anvil-sprint` skill (e.g., via `apm run
+  anvil-sprint`) as a fallback — that would recurse indefinitely.
 
 Pass the following payload to the agent:
 

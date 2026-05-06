@@ -2,7 +2,7 @@ name: anvil-workspace
 version: 2.0.0
 description: Anvil monorepo — three-package marketplace. Install packages individually via marketplace.json.
 author: Olino3
-license: MIT
+license: GPL-3.0
 
 # This manifest exists for contributors. End users install packages via:
 #   apm marketplace add Olino3/anvil

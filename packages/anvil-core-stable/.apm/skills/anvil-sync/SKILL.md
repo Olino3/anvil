@@ -49,11 +49,17 @@ If zero match, halt and output:
 
 ### 2. Invoke @sprint-syncer
 
-Pick the invocation path by host capability — do not guess:
+The `Task` tool with `subagent_type=sprint-syncer` is required.
 
-- If the `Task` tool with `subagent_type=sprint-syncer` is available →
-  invoke `@sprint-syncer`.
-- Otherwise → run `apm run anvil-sync --param phase=<phase>` via **Bash**.
+- If available → invoke `@sprint-syncer`.
+- If unavailable → halt and output verbatim:
+
+  > `@sprint-syncer` is not available in this host. The `anvil-sync` skill
+  > requires Task-based subagent dispatch. Run the host with subagent
+  > support, or invoke the `@sprint-syncer` agent file directly.
+
+  Do **not** re-enter the `anvil-sync` skill (e.g., via `apm run anvil-sync`)
+  as a fallback — that would recurse indefinitely.
 
 Pass the following payload:
 

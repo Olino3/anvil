@@ -246,7 +246,7 @@ jobs:
     if: always() && needs.detect.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4

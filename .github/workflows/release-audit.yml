@@ -15,5 +15,5 @@ jobs:
       head_ref: ${{ github.sha }}
     secrets: inherit
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
