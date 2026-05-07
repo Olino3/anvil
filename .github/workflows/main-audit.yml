@@ -1,0 +1,24 @@
+name: Main APM Audit
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/**/.apm/**'
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    uses: ./.github/workflows/_apm-audit.yml
+    with:
+      trigger: main
+      base_ref: ${{ github.event.before }}
+      head_ref: ${{ github.sha }}
+    secrets: inherit
+    permissions:
+      contents: read
+      actions: write

@@ -4,14 +4,9 @@ on:
   workflow_call:
     inputs:
       trigger:
-        description: 'pr or release'
+        description: 'main (push to main); other values reserved'
         required: true
         type: string
-      pr_number:
-        description: 'PR number (for PR trigger)'
-        required: false
-        type: string
-        default: ''
       base_ref:
         description: 'Base ref/SHA for diff'
         required: false
@@ -24,31 +19,59 @@ on:
         default: ''
 
 env:
-  # Single source of truth for the audited model list.
-  # Add a new model = append one string to this JSON array.
-  AUDIT_MODELS: '["gpt-5.4","gpt-5.5","claude-opus-4.7","claude-sonnet-4.6","claude-haiku-4.5"]'
+  # Two-tier model matrix. Cheap tier always runs; flagship tier only runs
+  # for files whose cheap-tier scores look weak (any axis < 7 or N/A).
+  AUDIT_MODELS_CHEAP: '["gpt-5.4","claude-haiku-4.5"]'
+  AUDIT_MODELS_FLAGSHIP: '["gpt-5.5","claude-opus-4.7"]'
+  CACHE_VERSION: v1
+  ESCALATION_THRESHOLD: '7'
 
 jobs:
   detect:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.changed.outputs.matrix }}
+      cheap_matrix: ${{ steps.changed.outputs.cheap_matrix }}
+      files_json: ${{ steps.changed.outputs.files_json }}
       file_count: ${{ steps.changed.outputs.file_count }}
       skip: ${{ steps.changed.outputs.skip }}
+      skip_reason: ${{ steps.changed.outputs.skip_reason }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Check for [skip-audit] opt-out
+        id: skip_check
+        env:
+          # User-controlled commit message: never interpolate directly
+          # into shell. Pass through env and use grep -F.
+          HEAD_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          if printf '%s' "$HEAD_MSG" | grep -qF '[skip-audit]'; then
+            echo "skip_audit=true" >> "$GITHUB_OUTPUT"
+            echo "Found [skip-audit] in HEAD commit message — audit will be skipped."
+          else
+            echo "skip_audit=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Find changed .apm files
         id: changed
         env:
-          TRIGGER: ${{ inputs.trigger }}
           BASE_REF: ${{ inputs.base_ref }}
           HEAD_REF: ${{ inputs.head_ref }}
-          MODELS_JSON: ${{ env.AUDIT_MODELS }}
+          MODELS_JSON: ${{ env.AUDIT_MODELS_CHEAP }}
+          SKIP_AUDIT: ${{ steps.skip_check.outputs.skip_audit }}
         run: |
           set -euo pipefail
+
+          if [ "$SKIP_AUDIT" = "true" ]; then
+            {
+              echo "skip=true"
+              echo "skip_reason=skip-audit-token"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           FILES=""
           if [ -n "$BASE_REF" ] && [ -n "$HEAD_REF" ]; then
@@ -56,27 +79,32 @@ jobs:
               | grep -E 'packages/[^/]+/\.apm/' || true)
           fi
 
-          if [ -z "$FILES" ] && [ "$TRIGGER" = "release" ]; then
-            FILES=$(find packages -path '*/.apm/*' -type f | sort)
-          fi
-
           if [ -z "$FILES" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "No .apm files to audit."
+            {
+              echo "skip=true"
+              echo "skip_reason=no-changed-files"
+            } >> "$GITHUB_OUTPUT"
+            echo "No changed .apm files in diff $BASE_REF..$HEAD_REF — skipping."
             exit 0
           fi
 
           export FILES MODELS_JSON
           MATRIX=$(python3 -c "
           import json, os
-          files = os.environ['FILES'].strip().split('\n')
+          files = [f for f in os.environ['FILES'].strip().split('\n') if f]
           models = json.loads(os.environ['MODELS_JSON'])
-          matrix = [{'file': f, 'model': m} for f in files if f for m in models]
+          matrix = [{'file': f, 'model': m} for f in files for m in models]
           print(json.dumps({'include': matrix}))
+          ")
+          FILES_JSON=$(python3 -c "
+          import json, os
+          files = [f for f in os.environ['FILES'].strip().split('\n') if f]
+          print(json.dumps(files))
           ")
 
           {
-            echo "matrix=$MATRIX"
+            echo "cheap_matrix=$MATRIX"
+            echo "files_json=$FILES_JSON"
             echo "file_count=$(printf '%s\n' "$FILES" | wc -l)"
             echo "skip=false"
           } >> "$GITHUB_OUTPUT"
@@ -84,24 +112,59 @@ jobs:
           echo "Audit matrix files:"
           printf '%s\n' "$FILES"
 
-  audit:
+  audit_cheap:
     needs: detect
     if: needs.detect.outputs.skip != 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       max-parallel: 25
-      matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.detect.outputs.cheap_matrix) }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Compute cache keys
+        id: keys
+        env:
+          FILE: ${{ matrix.file }}
+          MODEL: ${{ matrix.model }}
+          CACHE_VERSION: ${{ env.CACHE_VERSION }}
+        run: |
+          set -euo pipefail
+          if [ ! -f "$FILE" ]; then
+            echo "File no longer exists: $FILE — skipping cache keys"
+            echo "missing=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          SAFE_PATH=$(printf '%s' "$FILE" | tr '/.' '--')
+          SAFE_MODEL=$(printf '%s' "$MODEL" | tr '/.' '--')
+          CONTENT_HASH=$(sha256sum "$FILE" | cut -d' ' -f1)
+          {
+            echo "missing=false"
+            echo "safe_path=$SAFE_PATH"
+            echo "safe_model=$SAFE_MODEL"
+            echo "content_hash=$CONTENT_HASH"
+            echo "content_key=audit-${CACHE_VERSION}-${SAFE_PATH}-${SAFE_MODEL}-${CONTENT_HASH}"
+            echo "result_dir=audit-cache/${SAFE_PATH}--${SAFE_MODEL}"
+          } >> "$GITHUB_OUTPUT"
+          mkdir -p "audit-cache/${SAFE_PATH}--${SAFE_MODEL}"
+
+      - name: Restore content-hash cache
+        id: cache_content
+        if: steps.keys.outputs.missing != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.keys.outputs.result_dir }}
+          key: ${{ steps.keys.outputs.content_key }}
+
       - name: Setup Node.js
+        if: steps.keys.outputs.missing != 'true' && steps.cache_content.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install copilot CLI
-        id: install_copilot
+        if: steps.keys.outputs.missing != 'true' && steps.cache_content.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
           set -euo pipefail
@@ -113,7 +176,6 @@ jobs:
               exit 0
             }
           fi
-          # Persist npm global bin to PATH for subsequent steps.
           NPM_BIN="$(npm config get prefix)/bin"
           echo "$NPM_BIN" >> "$GITHUB_PATH"
           echo "Persisted $NPM_BIN to GITHUB_PATH"
@@ -121,6 +183,7 @@ jobs:
 
       - name: Check copilot CLI availability and auth
         id: copilot_check
+        if: steps.keys.outputs.missing != 'true' && steps.cache_content.outputs.cache-hit != 'true'
         env:
           COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: |
@@ -133,33 +196,49 @@ jobs:
 
           if [ -z "${COPILOT_TOKEN:-}" ]; then
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::COPILOT_GITHUB_TOKEN secret is not set. The default GITHUB_TOKEN does not grant Copilot CLI access. Add a repo secret named COPILOT_GITHUB_TOKEN containing a PAT from a Copilot-subscribed account to enable audits."
+            echo "::warning::COPILOT_GITHUB_TOKEN secret is not set. Add a repo secret named COPILOT_GITHUB_TOKEN containing a PAT from a Copilot-subscribed account to enable audits."
             exit 0
           fi
 
           echo "available=true" >> "$GITHUB_OUTPUT"
           echo "copilot found at $(command -v copilot); COPILOT_GITHUB_TOKEN secret is present"
 
-      - name: Run audit
+      - name: Run audit (cheap tier)
         id: scores
         env:
           FILE: ${{ matrix.file }}
           MODEL: ${{ matrix.model }}
+          MISSING: ${{ steps.keys.outputs.missing }}
+          CACHE_HIT: ${{ steps.cache_content.outputs.cache-hit }}
+          RESULT_DIR: ${{ steps.keys.outputs.result_dir }}
           COPILOT_AVAILABLE: ${{ steps.copilot_check.outputs.available }}
           GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: |
           set -uo pipefail
 
-          if [ ! -f "$FILE" ]; then
+          if [ "$MISSING" = "true" ]; then
             echo "File no longer exists: $FILE — recording N/A"
-            echo "result=${FILE}|${MODEL}|N/A|N/A|N/A|N/A" >> "$GITHUB_OUTPUT"
+            RESULT="${FILE}|${MODEL}|N/A|N/A|N/A|N/A"
+            echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mkdir -p "$RESULT_DIR"
+
+          if [ "$CACHE_HIT" = "true" ] && [ -f "$RESULT_DIR/result.txt" ]; then
+            RESULT=$(cat "$RESULT_DIR/result.txt")
+            echo "Cache hit — reusing scored result: $RESULT"
+            echo "result=$RESULT" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           if [ "$COPILOT_AVAILABLE" != "true" ]; then
             echo "copilot CLI unavailable or unauthenticated — recording N/A"
-            echo "result=${FILE}|${MODEL}|N/A|N/A|N/A|N/A" >> "$GITHUB_OUTPUT"
+            RESULT="${FILE}|${MODEL}|N/A|N/A|N/A|N/A"
+            echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+            # Do NOT cache N/A — a future successful run on the same
+            # content should still be allowed to score it.
             exit 0
           fi
 
@@ -195,7 +274,6 @@ jobs:
           EXIT=$?
           set -e
 
-          # Diagnostics: surface what copilot returned so future N/A cells self-explain.
           echo "::group::copilot diagnostics ($MODEL :: $FNAME)"
           echo "exit_code=$EXIT"
           echo "output_bytes=$(printf '%s' "$OUTPUT" | wc -c)"
@@ -216,7 +294,14 @@ jobs:
             echo "::warning::No parseable scores from copilot for $FNAME @ $MODEL (exit=$EXIT). See diagnostics group above."
           fi
 
-          echo "result=${FILE}|${MODEL}|${C:-N/A}|${L:-N/A}|${T:-N/A}|${A:-N/A}" >> "$GITHUB_OUTPUT"
+          RESULT="${FILE}|${MODEL}|${C:-N/A}|${L:-N/A}|${T:-N/A}|${A:-N/A}"
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+
+          # Only cache fully numeric results to avoid poisoning the cache
+          # with N/A from transient failures.
+          if [ -n "${C:-}" ] && [ -n "${L:-}" ] && [ -n "${T:-}" ] && [ -n "${A:-}" ]; then
+            printf '%s' "$RESULT" > "$RESULT_DIR/result.txt"
+          fi
 
       - name: Save result artifact
         if: always()
@@ -236,18 +321,290 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: audit-${{ strategy.job-index }}
+          name: audit-cheap-${{ strategy.job-index }}
           path: audit-results/
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 90
+
+  escalate:
+    needs: [detect, audit_cheap]
+    if: needs.detect.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      flagship_matrix: ${{ steps.decide.outputs.flagship_matrix }}
+      escalated_count: ${{ steps.decide.outputs.escalated_count }}
+    steps:
+      - name: Download cheap-tier results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: audit-cheap-*
+          path: cheap-results
+          merge-multiple: true
+
+      - name: Decide which files to escalate
+        id: decide
+        env:
+          FILES_JSON: ${{ needs.detect.outputs.files_json }}
+          FLAGSHIP_MODELS: ${{ env.AUDIT_MODELS_FLAGSHIP }}
+          ESCALATION_THRESHOLD: ${{ env.ESCALATION_THRESHOLD }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY' > matrix.json
+          import json, os, glob
+
+          files = json.loads(os.environ["FILES_JSON"])
+          flagship = json.loads(os.environ["FLAGSHIP_MODELS"])
+          threshold = int(os.environ["ESCALATION_THRESHOLD"])
+
+          # Collect cheap-tier scores keyed by file: a list of [C,L,T,A]
+          # per cheap model that scored that file.
+          per_file = {f: [] for f in files}
+          for path in glob.glob("cheap-results/**/*.txt", recursive=True):
+              with open(path) as fh:
+                  parts = fh.read().strip().split("|")
+              if len(parts) != 6:
+                  continue
+              file_name = parts[0]
+              if file_name not in per_file:
+                  continue
+              per_file[file_name].append(parts[2:6])
+
+          escalated = []
+          for f, score_sets in per_file.items():
+              # No cheap-tier results landed for this file at all → escalate
+              # so we still get *some* signal in the report.
+              if not score_sets:
+                  escalated.append(f)
+                  continue
+              weak = False
+              for axes in score_sets:
+                  for v in axes:
+                      if v == "N/A":
+                          weak = True
+                          break
+                      try:
+                          if int(v) < threshold:
+                              weak = True
+                              break
+                      except ValueError:
+                          weak = True
+                          break
+                  if weak:
+                      break
+              if weak:
+                  escalated.append(f)
+
+          if not escalated:
+              print(json.dumps({"include": []}))
+          else:
+              include = [{"file": f, "model": m} for f in escalated for m in flagship]
+              print(json.dumps({"include": include}))
+          PY
+
+          MATRIX=$(cat matrix.json)
+          COUNT=$(python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d.get('include',[])))" < matrix.json)
+          {
+            echo "flagship_matrix=$MATRIX"
+            echo "escalated_count=$COUNT"
+          } >> "$GITHUB_OUTPUT"
+          echo "Flagship matrix: $MATRIX"
+          echo "Escalated cells: $COUNT"
+
+  audit_flagship:
+    needs: [detect, escalate]
+    if: needs.detect.outputs.skip != 'true' && needs.escalate.outputs.escalated_count != '0' && needs.escalate.outputs.escalated_count != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 25
+      matrix: ${{ fromJson(needs.escalate.outputs.flagship_matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute cache keys
+        id: keys
+        env:
+          FILE: ${{ matrix.file }}
+          MODEL: ${{ matrix.model }}
+          CACHE_VERSION: ${{ env.CACHE_VERSION }}
+        run: |
+          set -euo pipefail
+          if [ ! -f "$FILE" ]; then
+            echo "missing=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          SAFE_PATH=$(printf '%s' "$FILE" | tr '/.' '--')
+          SAFE_MODEL=$(printf '%s' "$MODEL" | tr '/.' '--')
+          CONTENT_HASH=$(sha256sum "$FILE" | cut -d' ' -f1)
+          {
+            echo "missing=false"
+            echo "content_key=audit-${CACHE_VERSION}-${SAFE_PATH}-${SAFE_MODEL}-${CONTENT_HASH}"
+            echo "result_dir=audit-cache/${SAFE_PATH}--${SAFE_MODEL}"
+          } >> "$GITHUB_OUTPUT"
+          mkdir -p "audit-cache/${SAFE_PATH}--${SAFE_MODEL}"
+
+      - name: Restore content-hash cache
+        id: cache_content
+        if: steps.keys.outputs.missing != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.keys.outputs.result_dir }}
+          key: ${{ steps.keys.outputs.content_key }}
+
+      - name: Setup Node.js
+        if: steps.keys.outputs.missing != 'true' && steps.cache_content.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install copilot CLI
+        if: steps.keys.outputs.missing != 'true' && steps.cache_content.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if command -v copilot >/dev/null 2>&1; then
+            echo "copilot already on PATH at $(command -v copilot)"
+          else
+            npm install -g @github/copilot 2>&1 | tail -20 || {
+              echo "::warning::Failed to install @github/copilot — audit cells will be recorded as N/A"
+              exit 0
+            }
+          fi
+          NPM_BIN="$(npm config get prefix)/bin"
+          echo "$NPM_BIN" >> "$GITHUB_PATH"
+
+      - name: Check copilot CLI availability and auth
+        id: copilot_check
+        if: steps.keys.outputs.missing != 'true' && steps.cache_content.outputs.cache-hit != 'true'
+        env:
+          COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          if ! command -v copilot >/dev/null 2>&1; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "${COPILOT_TOKEN:-}" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::COPILOT_GITHUB_TOKEN not set — flagship cell will be N/A"
+            exit 0
+          fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
+      - name: Run audit (flagship tier)
+        id: scores
+        env:
+          FILE: ${{ matrix.file }}
+          MODEL: ${{ matrix.model }}
+          MISSING: ${{ steps.keys.outputs.missing }}
+          CACHE_HIT: ${{ steps.cache_content.outputs.cache-hit }}
+          RESULT_DIR: ${{ steps.keys.outputs.result_dir }}
+          COPILOT_AVAILABLE: ${{ steps.copilot_check.outputs.available }}
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+
+          if [ "$MISSING" = "true" ]; then
+            RESULT="${FILE}|${MODEL}|N/A|N/A|N/A|N/A"
+            echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mkdir -p "$RESULT_DIR"
+
+          if [ "$CACHE_HIT" = "true" ] && [ -f "$RESULT_DIR/result.txt" ]; then
+            RESULT=$(cat "$RESULT_DIR/result.txt")
+            echo "Cache hit (flagship) — reusing: $RESULT"
+            echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$COPILOT_AVAILABLE" != "true" ]; then
+            RESULT="${FILE}|${MODEL}|N/A|N/A|N/A|N/A"
+            echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CONTENT=$(cat "$FILE")
+          PKGNAME=$(echo "$FILE" | cut -d/ -f2)
+          FNAME=$(echo "$FILE" | sed 's|^packages/[^/]*/\.apm/||')
+
+          PROMPT=$(cat <<EOF
+          You are an expert AI Agent Architect and Prompt Engineer auditing agentic instruction files.
+
+          Review the file content below and score it 1-10 on each axis. Output ONLY these four lines and nothing else:
+          Clarity: <integer 1-10>
+          Length: <integer 1-10>
+          Tone: <integer 1-10>
+          Action: <integer 1-10>
+
+          Rubric:
+          - Clarity: Is the core objective immediately obvious? Are edge cases unambiguous?
+          - Length: Token efficiency. 10 = perfectly optimized density.
+          - Tone: Objective, precise, declarative — appropriate for an automated agent?
+          - Action: Are operational triggers, tool calls, and output format strict and unambiguous?
+
+          Package: ${PKGNAME}
+          File: ${FNAME}
+
+          ---
+          ${CONTENT}
+          EOF
+          )
+
+          set +e
+          OUTPUT=$(copilot --model "$MODEL" --allow-all -p "$PROMPT" 2>&1)
+          EXIT=$?
+          set -e
+
+          echo "::group::copilot diagnostics ($MODEL :: $FNAME)"
+          echo "exit_code=$EXIT"
+          printf '%s' "$OUTPUT" | head -c 500 || true
+          echo
+          echo "::endgroup::"
+
+          C=$(echo "$OUTPUT" | grep -oP 'Clarity:\s*\K[0-9]+' | head -1 || true)
+          L=$(echo "$OUTPUT" | grep -oP 'Length:\s*\K[0-9]+' | head -1 || true)
+          T=$(echo "$OUTPUT" | grep -oP 'Tone:\s*\K[0-9]+' | head -1 || true)
+          A=$(echo "$OUTPUT" | grep -oP 'Action:\s*\K[0-9]+' | head -1 || true)
+
+          RESULT="${FILE}|${MODEL}|${C:-N/A}|${L:-N/A}|${T:-N/A}|${A:-N/A}"
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+
+          if [ -n "${C:-}" ] && [ -n "${L:-}" ] && [ -n "${T:-}" ] && [ -n "${A:-}" ]; then
+            printf '%s' "$RESULT" > "$RESULT_DIR/result.txt"
+          fi
+
+      - name: Save result artifact
+        if: always()
+        env:
+          RESULT: ${{ steps.scores.outputs.result }}
+          FILE: ${{ matrix.file }}
+          MODEL: ${{ matrix.model }}
+        run: |
+          set -euo pipefail
+          mkdir -p audit-results
+          SAFE=$(printf '%s__%s' "$FILE" "$MODEL" | tr '/.' '--')
+          if [ -z "${RESULT:-}" ]; then
+            RESULT="${FILE}|${MODEL}|N/A|N/A|N/A|N/A"
+          fi
+          printf '%s\n' "$RESULT" > "audit-results/${SAFE}.txt"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-flagship-${{ strategy.job-index }}
+          path: audit-results/
+          if-no-files-found: warn
+          retention-days: 90
 
   report:
-    needs: [detect, audit]
-    if: always() && needs.detect.outputs.skip != 'true'
+    needs: [detect, audit_cheap, audit_flagship]
+    if: always() && needs.detect.outputs.skip != 'true' && needs.audit_cheap.result == 'success'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -264,44 +621,9 @@ jobs:
           echo "--- report.md ---"
           cat report.md
 
-      - name: Post PR comment
-        if: inputs.trigger == 'pr' && inputs.pr_number != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          MARKER="<!-- apm-audit-report -->"
-          { printf '%s\n' "$MARKER"; cat report.md; } > body.md
-
-          EXISTING_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" \
-            | head -1 || true)
-
-          if [ -n "$EXISTING_ID" ]; then
-            gh api --method PATCH \
-              "repos/${REPO}/issues/comments/${EXISTING_ID}" \
-              -F body=@body.md >/dev/null
-            echo "Updated existing comment $EXISTING_ID"
-          else
-            gh pr comment "$PR_NUMBER" --body-file body.md --repo "$REPO"
-            echo "Posted new comment"
-          fi
-
-      - name: Update release notes
-        if: inputs.trigger == 'release'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            CURRENT=$(gh release view "$TAG" --repo "$REPO" --json body --jq '.body' || echo "")
-            { printf '%s\n\n---\n\n' "$CURRENT"; cat report.md; } > new-notes.md
-            gh release edit "$TAG" --repo "$REPO" --notes-file new-notes.md
-            echo "Appended audit report to release $TAG"
-          else
-            echo "Release $TAG not yet created — skipping notes update"
-          fi
+      - name: Upload SHA-keyed report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apm-audit-report-${{ github.sha }}
+          path: report.md
+          retention-days: 90
