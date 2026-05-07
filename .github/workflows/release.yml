@@ -1,0 +1,125 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'anvil-*-stable-v*.*.*'
+
+jobs:
+  build-plugin-bundles:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [anvil-core-stable, anvil-orchestrator-stable]
+        host: [claude, copilot, cursor, opencode]
+    env:
+      PACKAGE: ${{ matrix.package }}
+      HOST: ${{ matrix.host }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install APM
+        run: curl -sSL https://aka.ms/apm-unix | sh
+
+      - name: Install package deps (for the package being packed)
+        working-directory: packages/${{ matrix.package }}
+        run: apm install
+
+      - name: Build plugin bundle
+        working-directory: packages/${{ matrix.package }}
+        run: apm pack --format plugin --target "$HOST" --archive -o ./build/
+
+      - name: Rename bundle to locked naming convention
+        working-directory: packages/${{ matrix.package }}/build
+        run: |
+          # apm pack produces files like <package-name>-<version>.tar.gz by default;
+          # rename to the spec's locked pattern:
+          #   anvil-<package-name>-<version>-<host>.tar.gz
+          # Since package names already start with anvil-, the result is e.g.:
+          #   anvil-core-stable-2.0.0-claude.tar.gz
+          # See shared/specs/verification-log.md § "Risk #3 (bundle naming)".
+          for f in *.tar.gz; do
+            base=$(basename "$f" .tar.gz)
+            mv "$f" "${base}-${HOST}.tar.gz"
+          done
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package }}-${{ matrix.host }}
+          path: packages/${{ matrix.package }}/build/*.tar.gz
+
+  create-release:
+    needs: build-plugin-bundles
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all bundle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Fetch APM audit report for this commit
+        id: fetch_audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -uo pipefail
+          # Find the most recent successful main-audit run for this commit.
+          RUN_ID=$(gh run list \
+            --repo "$REPO" \
+            --workflow=main-audit.yml \
+            --commit "$SHA" \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId // empty' 2>/dev/null || true)
+
+          if [ -z "${RUN_ID:-}" ]; then
+            echo "No successful main-audit run found for commit $SHA — audit section will be a placeholder."
+            echo "_APM audit results unavailable for this release._" > audit-section.md
+            exit 0
+          fi
+
+          echo "Found main-audit run: $RUN_ID"
+          ARTIFACT_NAME="apm-audit-report-${SHA}"
+          if gh run download "$RUN_ID" --repo "$REPO" --name "$ARTIFACT_NAME" --dir audit-tmp 2>/dev/null; then
+            if [ -f audit-tmp/report.md ]; then
+              cp audit-tmp/report.md audit-section.md
+              echo "Audit section sourced from $ARTIFACT_NAME"
+            else
+              echo "Artifact $ARTIFACT_NAME downloaded but missing report.md — placeholder."
+              echo "_APM audit results unavailable for this release._" > audit-section.md
+            fi
+          else
+            echo "Failed to download artifact $ARTIFACT_NAME (likely expired) — placeholder."
+            echo "_APM audit results unavailable for this release._" > audit-section.md
+          fi
+
+      - name: Build release body
+        run: |
+          set -euo pipefail
+          {
+            cat .github/release-body.md
+            printf '\n\n---\n\n'
+            cat audit-section.md
+          } > release-body.md
+          echo "--- release-body.md ---"
+          cat release-body.md
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./artifacts/**/*.tar.gz
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
+          generate_release_notes: true
+          body_path: release-body.md

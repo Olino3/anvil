@@ -1,0 +1,27 @@
+{
+  "name": "anvil",
+  "owner": {
+    "name": "Olino3"
+  },
+  "metadata": {
+    "pluginRoot": "./packages"
+  },
+  "plugins": [
+    {
+      "name": "anvil-core-stable",
+      "source": "anvil-core-stable",
+      "description": "Anvil discipline — agents, skills, and parameterized prompts for human-driven sprint TDD. No dispatch."
+    },
+    {
+      "name": "anvil-orchestrator-stable",
+      "source": "anvil-orchestrator-stable",
+      "description": "Anvil orchestrator — high-level human-in-the-loop automation for sprint TDD. One stage, one approval, full inner loop."
+    },
+    {
+      "name": "anvil-common-stable",
+      "source": "anvil-common-stable",
+      "description": "Internal — shared primitives for Anvil (formats, templates, TDD / commit / worktree discipline). Installed transitively.",
+      "internal": true
+    }
+  ]
+}

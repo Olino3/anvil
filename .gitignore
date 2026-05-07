@@ -1,0 +1,4 @@
+.worktrees/
+docs/audit/
+**/__pycache__
+
